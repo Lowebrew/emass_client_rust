@@ -1,0 +1,46 @@
+# Milestone #3: CI — run the Rust toolchain and the full parity test suite
+# on every push and pull request. Pure-Rust rustls transport means no system
+# OpenSSL is required, so the stock Ubuntu runner suffices.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build + test (${{ matrix.rust }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable, beta]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Cache Cargo registry + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.rust }}-
+
+      - name: Build all targets
+        run: cargo build --locked --all-targets
+
+      - name: Unit tests
+        run: cargo test --locked --lib
+
+      - name: Byte-parity + wire-capture tests
+        run: cargo test --locked --test byte_parity --test parity_capture
