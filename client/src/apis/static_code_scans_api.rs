@@ -31,7 +31,13 @@ pub enum AddStaticCodeScansBySystemIdError {
 
 
 /// Upload or clear application scan findings into a system's `systemId` assets module.  **Request Body Required Fields** - `application` (Object)   - `applicationName`   - `version` - `applicationFindings` (Object Array)   - `codeCheckName`   - `count`   - `scanDate`   - `cweId`  **NOTE:** To clear an application's findings, use only the field `clearFindings` as the Request body and set it to true. Example: ``` [   {     \"application\": {       \"applicationName\": \"application name\",       \"version\": \"application version\"     },     \"applicationFindings\": [       { \"clearFindings\": true }     ]   } ] ```
-pub async fn add_static_code_scans_by_system_id(configuration: &configuration::Configuration, system_id: i32, static_code_request_post_body: models::StaticCodeRequestPostBody) -> Result<models::StaticCodeResponsePost, Error<AddStaticCodeScansBySystemIdError>> {
+// The eMASS spec requires the body to be a SINGLE-ELEMENT ARRAY (see the NOTE
+// above, and emasser `lib/emasse/post.rb` `add`/`clear`, which call
+// `add_static_code_scans_by_system_id(systemId, Array.new(1, body))`). The
+// generated client serializes the argument directly, so it accepts a Vec and
+// serde emits the `[ {...} ]` array. Accepting the Vec (not a single body) is
+// what gives byte-for-byte parity with the reference tool.
+pub async fn add_static_code_scans_by_system_id(configuration: &configuration::Configuration, system_id: i32, static_code_request_post_body: Vec<models::StaticCodeRequestPostBody>) -> Result<models::StaticCodeResponsePost, Error<AddStaticCodeScansBySystemIdError>> {
     // add a prefix to parameters to efficiently prevent name collisions
     let p_path_system_id = system_id;
     let p_body_static_code_request_post_body = static_code_request_post_body;

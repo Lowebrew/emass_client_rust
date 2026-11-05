@@ -1797,16 +1797,25 @@ async fn cmd_post_scan_clear(opts: &HashMap<String, String>) -> Result<()> {
         .map(String::clone)
         .ok_or_else(|| anyhow!("`post scan clear` requires --name <application name>"))?;
     let sys_id = require_int(opts, "systemId")?;
+    // `version` is required by the eMASS spec + reference tool: a clear's
+    // application needs both `applicationName` and `version`.
+    let version = opts
+        .get("version")
+        .map(String::clone)
+        .ok_or_else(|| anyhow!("`post scan clear` requires --version <app version>"))?;
     let config = build_config()?;
     let mut app = StaticCodeRequestPostBodyApplication::new();
     app.application_name = Some(name);
-    app.version = opts.get("version").map(String::clone);
+    app.version = Some(version);
     let mut finding = StaticCodeApplicationPost::new();
     finding.clear_findings = Some(clear_findings);
     let mut body = StaticCodeRequestPostBody::new();
     body.application = Some(Box::new(app));
     body.application_findings = Some(vec![finding]);
-    match apis::static_code_scans_api::add_static_code_scans_by_system_id(&config, sys_id, body).await {
+    // eMASS requires the body as a single-element JSON array `[ {...} ]`
+    // (matches emasser `post.rb` `Array.new(1, body)`). The client serializes a
+    // Vec directly, so pass `vec![body]` for byte parity with the reference.
+    match apis::static_code_scans_api::add_static_code_scans_by_system_id(&config, sys_id, vec![body]).await {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -1837,7 +1846,7 @@ async fn cmd_post_scan_static_code(opts: &HashMap<String, String>) -> Result<()>
         }
         body.application_findings = Some(findings);
     }
-    match apis::static_code_scans_api::add_static_code_scans_by_system_id(&config, sys_id, body).await {
+    match apis::static_code_scans_api::add_static_code_scans_by_system_id(&config, sys_id, vec![body]).await {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
