@@ -1090,7 +1090,8 @@ async fn dispatch_post(args: &[String]) -> Result<()> {
         Some("scan") => match sub.as_slice() {
             ["scan", "add", "static", "code"] => cmd_post_scan_static_code(&opts).await,
             ["scan", "add"] => cmd_post_scan_add(&opts).await,
-            _ => bail!("usage: emasser post scan add|add static code"),
+            ["scan", "clear"] => cmd_post_scan_clear(&opts).await,
+            _ => bail!("usage: emasser post scan add|add static code|clear"),
         },
         Some("register") => match sub.as_slice() {
             ["register", "cert"] => cmd_post_register_cert(&opts).await,
@@ -1769,6 +1770,43 @@ async fn cmd_post_scan_add(opts: &HashMap<String, String>) -> Result<()> {
         .ok_or_else(|| anyhow!("`scan add` requires --filename <path>"))?;
     let is_baseline = opts.get("isBaseline").map(|v| parse_bool(v));
     match apis::device_scan_results_api::add_scan_results_by_system_id(&config, sys_id, scan_type, filename, is_baseline).await {
+        Ok(resp) => print_output(&resp),
+        Err(err) => print_err(&err),
+    }
+    Ok(())
+}
+
+/// `post scan clear` — clear an application's static-code findings.
+/// Mirrors `lib/emasse/lib/emasse/post.rb` `Scans#clear`: the
+/// `--clearFindings` flag is required and truthy, and the body carries
+/// only `application` (name + version) plus one finding with
+/// `clearFindings=true`.
+async fn cmd_post_scan_clear(opts: &HashMap<String, String>) -> Result<()> {
+    // Validate required fields *before* loading config / connecting, so a
+    // clear validation error is returned rather than a config/network error
+    // (mirrors emasser `Scans#clear`, which guards before the API call).
+    let clear_findings = opts
+        .get("clearFindings")
+        .map(|v| parse_bool(v))
+        .ok_or_else(|| anyhow!("`post scan clear` requires --clearFindings <true>"))?;
+    if !clear_findings {
+        bail!("To clear an application's findings set --clearFindings true");
+    }
+    let name = opts
+        .get("name")
+        .map(String::clone)
+        .ok_or_else(|| anyhow!("`post scan clear` requires --name <application name>"))?;
+    let sys_id = require_int(opts, "systemId")?;
+    let config = build_config()?;
+    let mut app = StaticCodeRequestPostBodyApplication::new();
+    app.application_name = Some(name);
+    app.version = opts.get("version").map(String::clone);
+    let mut finding = StaticCodeApplicationPost::new();
+    finding.clear_findings = Some(clear_findings);
+    let mut body = StaticCodeRequestPostBody::new();
+    body.application = Some(Box::new(app));
+    body.application_findings = Some(vec![finding]);
+    match apis::static_code_scans_api::add_static_code_scans_by_system_id(&config, sys_id, body).await {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
