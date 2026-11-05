@@ -1,0 +1,23 @@
+[workspace]
+members = ["client"]
+resolver = "2"
+
+[package]
+name = "emasser"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "emasser"
+path = "src/main.rs"
+
+[dependencies]
+# default-features = false: the generated client defaults to native-tls (needs
+# system OpenSSL + pkg-config, unavailable here). We opt for pure-Rust rustls.
+emass_client = { path = "client", default-features = false }
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+time = { version = "0.3", features = ["formatting", "parsing"] }

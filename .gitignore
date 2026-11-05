@@ -1,0 +1,22 @@
+# Build output
+/target/
+
+# Local secrets / configuration (never commit these)
+/.env
+*.env.local
+
+# mTLS material, certs, and keys (kept on disk only, referenced via env)
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.der
+*.keystore
+id_rsa*
+
+# eMASS artifact downloads
+eMASSerDownloads/
+
+# OS / editor noise
+.DS_Store
