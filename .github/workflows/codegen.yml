@@ -35,11 +35,23 @@ jobs:
           curl -fsSL -o openapi-generator-cli-7.12.0.jar \
             "https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.12.0/openapi-generator-cli-7.12.0.jar"
           ls -la openapi-generator-cli-7.12.0.jar
-      - name: Regenerate client + report drift
+      # Blocking drift guard: regenerate from the COMMITTED custom template +
+      # patched generator class and assert byte-for-byte parity (196/196)
+      # against the committed client. Catches decay in the template or patch.
+      # See REGEN_NOTES.md and the repo-local ./regen.sh 'verify' mode.
+      - name: Assert 196/196 regeneration parity (custom template)
         env:
           JAVA_HOME: ${{ env.JAVA_HOME }}
           OGCJAR: ${{ github.workspace }}/openapi-generator-cli-7.12.0.jar
-          REPO_ROOT: ${{ github.workspace }}
+        run: |
+          chmod +x regen.sh
+          bash regen.sh verify
+      # Informational only: regenerate from STOCK openapi-generator 7.12.0 and
+      # show the divergent set (always reports the ~53 custom-template files).
+      - name: Regenerate from stock 7.12.0 (informational drift)
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+          OGCJAR: ${{ github.workspace }}/openapi-generator-cli-7.12.0.jar
         run: |
           chmod +x regen_client.sh
           bash regen_client.sh summary

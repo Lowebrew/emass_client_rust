@@ -13,11 +13,15 @@ Two pipelines touch this crate; do not confuse them:
   7.12.0 options (no custom template) into `/tmp`, then diffs against
   `client/`. Because it omits the custom template + patches, it shows the
   *structural* divergence below. See "Baseline drift".
-- **`regen.sh`** (in the `emass-client-codegen-recovery` user skill —
-  `~/.hermes/skills/emass-client-codegen-recovery/scripts/regen.sh`) — the real
-  reproducible pipeline. It compiles the patched generator classes, drives the
-  **committed custom `ct/` template**, and reproduces `client/src` on
-  **196 / 196** files. This is the one to use to rebuild the crate.
+- **`./regen.sh`** (repo-local — see "Repo-local regen") — the real,
+  self-contained reproducible pipeline. It compiles the patched generator
+  classes, drives the **committed custom `ct/` template**, and reproduces
+  `client/src` on **196 / 196** files. It is the one to use to rebuild the
+  crate, and its `verify` subcommand asserts 196 / 196 parity — this is the CI
+  drift guard. The skill copy
+  (`~/.hermes/skills/emass-client-codegen-recovery/scripts/regen.sh`) is a
+  byte-identical mirror read from the skill's `references/`; the repo-local copy
+  is the canonical entrypoint.
 
 ## Toolchain (pinned, no sudo)
 
@@ -25,34 +29,55 @@ Two pipelines touch this crate; do not confuse them:
 | --- | --- |
 | Generator | `openapi-generator-cli` **7.12.0** |
 | Java | Temurin **JDK 21** (`~/.local/toolchain/jdk-21.0.13+9`) |
-| Real regen script | `regen.sh` (user skill) — patched classes + `ct/` template |
+| Real regen script | `./regen.sh` (repo-local) — patched classes + `ct/` template |
 | Stock drift script | `regen_client.sh` — stock 7.12.0, drift guard only |
 | Env | `~/.local/toolchain/env.sh` (`JAVA_HOME`, `OGCJAR`, `PATH`) |
 | Custom template (committed) | `references/pipeline_inputs/ct/` (repo) **and** skill `references/pipeline_inputs/ct/` |
 | Regen input spec (tracked) | `spec/eMASSRestOpenApi.yaml` |
 
+## Repo-local regen (`./regen.sh`)
+
+The repo ships its own entrypoint, so regeneration is self-contained — no
+external skill path required. Paths resolve from the script location.
+
+```bash
+# Default subcommand: regenerate + assert 196/196 parity (the drift guard).
+./regen.sh verify
+
+# Rebuild only (manual regen into <out>), then stage client/:
+./regen.sh regen spec/eMASSRestOpenApi.yaml /tmp/emass_regen
+```
+
+`./regen.sh` is repo-relative (toolchain auto-discovered: caller env →
+`~/.local/toolchain` → generic candidates), so it runs from any checkout. It
+recompiles the staged `RustClientCodegen.java` at run time — into a temp dir,
+never mutating `references/` — and drives the custom `ct/` template, reproducing
+`client/src` on **196 / 196** files. `verify` diffs the regen output against the
+committed `client/src` and **fails on any difference**.
+
+The stock `regen_client.sh` is separate: it uses **stock** 7.12.0 output (no
+custom template) and always reports ~53 structural differ — expected, not a
+failure (see "Baseline drift").
+
 ## Regeneration procedure (reproducible, non-destructive)
 
 ```bash
-source ~/.local/toolchain/env.sh
-~/.hermes/skills/emass-client-codegen-recovery/scripts/regen.sh \
-    spec/eMASSRestOpenApi.yaml /tmp/emass_regen   # reproducible rebuild
+source ~/.local/toolchain/env.sh        # optional; ./regen.sh auto-discovers toolchain
+./regen.sh verify                       # regenerate + assert 196/196 parity
 ```
 
-The script compiles the patched generator, runs the generator against the
-custom `ct/` template, and reports `COMPILE_EXIT`, `REGEN_EXIT`, and the
-number of `[GEN]` output markers. It then diffs `/tmp/emass_regen` against the
-committed `client/src` (expect **196 / 196**, 0 differ).
+After editing the template and staging `client/`, `verify` reproduces
+**196 / 196**.
 
 ### Sanity check after editing the template
 
 Because the template is the single source of `client/src`, any hand edit to
 `ct/lib.mustache` **must** be mirrored to both copies
 (`references/pipeline_inputs/ct/lib.mustache` and the skill copy) and the regen
-re-run. Verify with:
-
-```bash
-diff -rq client/src /tmp/emass_regen/src     # expect: 196/196, only lib.rs differs
+re-run. `./regen.sh verify` enforces this automatically — it fails if the
+committed `client/src` drifts from the custom-template regen (expect
+**196 / 196, 0 differ**; `lib.rs` already ships the clippy allows from the
+template, so it is byte-identical too).
 ```
 
 ## Baseline drift (stock vs committed)
@@ -118,8 +143,14 @@ scoped to keep the generated crate excluded **by construction**, not by hand:
   because `client/src/lib.rs` carries the crate-level allows above.
 - **rustfmt:** `cargo fmt -p emasser -- --check` — scopes to the hand-authored
   package (`src/` + `tests/`). `client/` is generated and must NOT be
-  reformatted; on stable the rustfmt `ignore` list is a nightly-only feature,
+  reformatted; on stable the rustfmt  `ignore` list is a nightly-only feature,
   so scoping is done via `-p emasser` (see `rustfmt.toml`).
+
+- **Drift guard (`codegen.yml`):** `./regen.sh verify` regenerates from the
+  committed custom template + patched class and asserts 196 / 196 parity. A
+  template or patch that drifts out of sync with `client/src` **fails the job**,
+  forcing a regen + recovery. A follow-up step regenerates from **stock** 7.12.0
+  for the informational baseline-drift list (see "Baseline drift").
 
 ## Build/run rule
 
