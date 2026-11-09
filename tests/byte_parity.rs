@@ -9,18 +9,13 @@
 // can never drift from the reference tool. They exercise model serialization
 // (the part that determines the wire bytes) without a live network round-trip.
 use emass_client::models::{
-    StaticCodeApplicationPost, StaticCodeRequestPostBody,
-    StaticCodeRequestPostBodyApplication,
+    StaticCodeApplicationPost, StaticCodeRequestPostBody, StaticCodeRequestPostBodyApplication,
 };
 
 /// Reconstructs the body exactly as `cmd_post_scan_clear` /
 /// `cmd_post_scan_static_code` build it. Kept here so the byte-parity target is
 /// expressed once and both the handler and the test agree on it.
-fn build_body(
-    app_name: &str,
-    version: &str,
-    clear: bool,
-) -> Vec<StaticCodeRequestPostBody> {
+fn build_body(app_name: &str, version: &str, clear: bool) -> Vec<StaticCodeRequestPostBody> {
     let mut app = StaticCodeRequestPostBodyApplication::new();
     app.application_name = Some(app_name.to_string());
     app.version = Some(version.to_string());

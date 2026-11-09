@@ -137,51 +137,91 @@ fn capture(command: &[&str]) -> Captured {
 
     let (mut sock, _peer) = listener.accept().expect("accept");
     let captured = read_request(&mut sock).expect("read request");
-    respond(
-        &mut sock,
-        r#"{"data":{"status":"ok","mockType":"stable"}}"#,
-    );
+    respond(&mut sock, r#"{"data":{"status":"ok","mockType":"stable"}}"#);
     let _ = child.wait();
     captured
 }
 
 #[test]
 fn clear_posts_single_element_array() {
-    let cap = capture(&["post", "scan", "clear", "--systemId", "1", "--name", "SomeApp",
-                        "--version", "1.2.3", "--clearFindings", "true"]);
+    let cap = capture(&[
+        "post",
+        "scan",
+        "clear",
+        "--systemId",
+        "1",
+        "--name",
+        "SomeApp",
+        "--version",
+        "1.2.3",
+        "--clearFindings",
+        "true",
+    ]);
 
     // Method + path parity (client builds /api/systems/{id}/static-code-scans).
     assert_eq!(cap.method, "POST", "clear must POST");
-    assert_eq!(cap.path, "/api/systems/1/static-code-scans", "unexpected path: {}", cap.path);
+    assert_eq!(
+        cap.path, "/api/systems/1/static-code-scans",
+        "unexpected path: {}",
+        cap.path
+    );
 
     // Header parity: a JSON body sized to match the payload.
-    assert_eq!(cap.headers.get("content-type").map(String::as_str), Some("application/json"));
-    let cl: usize = cap.headers.get("content-length").and_then(|s| s.parse().ok()).unwrap_or(0);
+    assert_eq!(
+        cap.headers.get("content-type").map(String::as_str),
+        Some("application/json")
+    );
+    let cl: usize = cap
+        .headers
+        .get("content-length")
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
     assert_eq!(cl, cap.body.len(), "content-length must match body bytes");
 
     // Body parity: exact JSON shape (object-key order independent).
-    let got: serde_json::Value =
-        serde_json::from_slice(&cap.body).expect("POC emitted valid JSON");
+    let got: serde_json::Value = serde_json::from_slice(&cap.body).expect("POC emitted valid JSON");
     let expected = serde_json::json!([{
         "application": { "applicationName": "SomeApp", "version": "1.2.3" },
         "applicationFindings": [ { "clearFindings": true } ],
     }]);
     println!("clear wire body: {}", String::from_utf8_lossy(&cap.body));
-    assert_eq!(got, expected, "clear wire body must match the reference tool's shape");
-    assert!(got.is_array(), "clear body must be a JSON array, got object");
+    assert_eq!(
+        got, expected,
+        "clear wire body must match the reference tool's shape"
+    );
+    assert!(
+        got.is_array(),
+        "clear body must be a JSON array, got object"
+    );
 }
 
 #[test]
 fn add_static_code_posts_the_body_array() {
     let findings_arg = r#"[{"rawSeverity":"critical","codeCheckName":"CSP001","count":3,"scanDate":1700000001,"cweId":"CWE-79"}]"#;
-    let cap = capture(&["post", "scan", "add", "static", "code", "--systemId", "2",
-                        "--name", "Inventory", "--version", "2.0", "--findings", findings_arg]);
+    let cap = capture(&[
+        "post",
+        "scan",
+        "add",
+        "static",
+        "code",
+        "--systemId",
+        "2",
+        "--name",
+        "Inventory",
+        "--version",
+        "2.0",
+        "--findings",
+        findings_arg,
+    ]);
 
     assert_eq!(cap.method, "POST");
-    assert_eq!(cap.path, "/api/systems/2/static-code-scans", "unexpected path: {}", cap.path);
+    assert_eq!(
+        cap.path, "/api/systems/2/static-code-scans",
+        "unexpected path: {}",
+        cap.path
+    );
 
-    let got: serde_json::Value =
-        serde_json::from_slice(&cap.body).expect("POC emitted valid JSON");
+    let got: serde_json::Value = serde_json::from_slice(&cap.body).expect("POC emitted valid JSON");
     println!("add wire body: {}", String::from_utf8_lossy(&cap.body));
 
     // One-element array wrapping a single application object.
@@ -191,7 +231,9 @@ fn add_static_code_posts_the_body_array() {
     assert_eq!(obj["application"]["applicationName"], json_str("Inventory"));
     assert_eq!(obj["application"]["version"], json_str("2.0"));
 
-    let f_arr = obj["applicationFindings"].as_array().expect("findings array");
+    let f_arr = obj["applicationFindings"]
+        .as_array()
+        .expect("findings array");
     assert_eq!(f_arr.len(), 1);
     // The client canonicalizes rawSeverity to title-case on the wire.
     assert_eq!(f_arr[0]["rawSeverity"], json_str("Critical"));
