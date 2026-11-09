@@ -4,5 +4,5 @@
   "cargoName": "emass_client",
   "packageDescription": "Rust client for the eMASS REST API (generated from OpenAPI spec)",
   "gitUserId": "mitre",
-  "gitRepoId": "emasser_rust"
+  "gitRepoId": "emass_client_rust"
 }
