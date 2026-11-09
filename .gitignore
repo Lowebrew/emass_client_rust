@@ -20,3 +20,13 @@ eMASSerDownloads/
 
 # OS / editor noise
 .DS_Store
+
+# Regeneration scratch: duplicated OpenAPI templates + toolchain kept in-repo (regen.sh falls back to ~/.local/toolchain). Ignored, never tracked.
+/.local/
+
+# Orphan template tree: the real templates live under references/pipeline_inputs/ct/. Not produced by the current pipeline.
+/rust/
+
+# Codegen build output: RustClientCodegen is recompiled from .java on each regen run.
+# The base class AbstractRustCodegen*.class stays tracked (it is the base class on the regen classpath).
+references/pipeline_inputs/new_classes/**/RustClientCodegen*.class
