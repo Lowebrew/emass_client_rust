@@ -1,11 +1,23 @@
 # `emass_client` Codegen — Regeneration Notes
 
 The `emass_client` crate (`client/`) is generated from
-`spec/eMASSRestOpenApi.yaml` via `openapi-generator` (`-g rust`). Regeneration
-is a **recovery**, not a fresh build: the committed client carries several
-customizations above stock output, so a raw regen only matches the client on
-the *bulk* generated code, not byte-identical. See `regen_client.sh` for the
-reproducible, non-destructive regen + drift check.
+`spec/eMASSRestOpenApi.yaml` via `openapi-generator` (`-g rust`). The crate is
+built with a **custom openapi-generator `rust` template** carrying several
+customizations above stock output. Regeneration is a **recovery of the committed
+template** — not a fresh build — and is **byte-for-byte reproducible**: the
+committed `client/src` matches the regen output on **196 / 196** files.
+
+Two pipelines touch this crate; do not confuse them:
+
+- **`regen_client.sh`** — the stock drift guard. It regenerates from **stock**
+  7.12.0 options (no custom template) into `/tmp`, then diffs against
+  `client/`. Because it omits the custom template + patches, it shows the
+  *structural* divergence below. See "Baseline drift".
+- **`regen.sh`** (in the `emass-client-codegen-recovery` user skill —
+  `~/.hermes/skills/emass-client-codegen-recovery/scripts/regen.sh`) — the real
+  reproducible pipeline. It compiles the patched generator classes, drives the
+  **committed custom `ct/` template**, and reproduces `client/src` on
+  **196 / 196** files. This is the one to use to rebuild the crate.
 
 ## Toolchain (pinned, no sudo)
 
@@ -13,86 +25,101 @@ reproducible, non-destructive regen + drift check.
 | --- | --- |
 | Generator | `openapi-generator-cli` **7.12.0** |
 | Java | Temurin **JDK 21** (`~/.local/toolchain/jdk-21.0.13+9`) |
-| Script | `regen_client.sh` → regenerates into `/tmp`, diffs vs `client/` |
+| Real regen script | `regen.sh` (user skill) — patched classes + `ct/` template |
+| Stock drift script | `regen_client.sh` — stock 7.12.0, drift guard only |
 | Env | `~/.local/toolchain/env.sh` (`JAVA_HOME`, `OGCJAR`, `PATH`) |
+| Custom template (committed) | `references/pipeline_inputs/ct/` (repo) **and** skill `references/pipeline_inputs/ct/` |
+| Regen input spec (tracked) | `spec/eMASSRestOpenApi.yaml` |
 
-Regen command (what `regen_client.sh` runs):
+## Regeneration procedure (reproducible, non-destructive)
 
 ```bash
-java -jar openapi-generator-cli-7.12.0.jar generate \
-  -i spec/eMASSRestOpenApi.yaml -g rust -o /tmp/emass_client_regen \
-  --skip-validate-spec
+source ~/.local/toolchain/env.sh
+~/.hermes/skills/emass-client-codegen-recovery/scripts/regen.sh \
+    spec/eMASSRestOpenApi.yaml /tmp/emass_regen   # reproducible rebuild
 ```
 
-## Baseline drift measurement
+The script compiles the patched generator, runs the generator against the
+custom `ct/` template, and reports `COMPILE_EXIT`, `REGEN_EXIT`, and the
+number of `[GEN]` output markers. It then diffs `/tmp/emass_regen` against the
+committed `client/src` (expect **196 / 196**, 0 differ).
 
-With **stock** options and no customization:
-- **143 / 196** committed `client/src` files are byte-identical.
-- **53** files differ — and the divergence is **structural**, not cosmetic.
-- The 53 divergent files are exactly those containing HTTP/header logic:
-  all 51 `apis/*.rs` + `configuration.rs` + `static_code_scans_api.rs` + 2 models.
+### Sanity check after editing the template
 
-Root cause: the committed client was produced from a **custom openapi-generator
-`rust` template** (the user's bespoke work). MITRE only ships official
-**Ruby** and **TypeScript** clients for `emass_client`; the Rust client is the
-user's own, with a template that customizes the emass security schemes. That
-template's source was removed by commit `2f8a30a` ("Remove Ruby tooling
-artifacts", which deleted the `.openapi-generator` metadata), so byte-identical
-regen must *recover* the template's customizations.
+Because the template is the single source of `client/src`, any hand edit to
+`ct/lib.mustache` **must** be mirrored to both copies
+(`references/pipeline_inputs/ct/lib.mustache` and the skill copy) and the regen
+re-run. Verify with:
 
-## Customization-recovery specification
+```bash
+diff -rq client/src /tmp/emass_regen/src     # expect: 196/196, only lib.rs differs
+```
 
-Recover each to turn a stock 7.12.0 regen into the committed client:
+## Baseline drift (stock vs committed)
+
+With **stock** options and **no** template/patches (what `regen_client.sh` does):
+- **~143 / 196** committed `client/src` files are byte-identical.
+- The rest differ **structurally** — exactly the files touched by the 5
+  customizations below (most `apis/*.rs`, `configuration.rs`, the
+  `static_code_scans_api.rs` `Vec` signature, etc.).
+
+This drift is expected and **not** a problem: it measures stock output against
+the custom template output. Use `regen.sh` (which carries the template) for a
+faithful rebuild — that path reproduces 196 / 196.
+
+## Customizations (recovered by `regen.sh`)
 
 1. **`Accept` header.** Every request build ends with
    `.header("Accept", "application/json").build()?` (stock emits `.build()?`).
    One occurrence per API file.
 
 2. **Dedicated security-scheme fields.** The emass `user-uid` / `Prefer`
-   security schemes are mapped to **dedicated** `Configuration` fields, not the
-   stock `ApiKey`:
+   security schemes map to dedicated `Configuration` fields, not stock
+   `ApiKey`:
    - `Configuration` gains `user_uid: Option<String>` and `prefer: Option<String>`.
-   - API files set headers directly:
-     ```rust
-     if let Some(ref prefer) = configuration.prefer {
-         req_builder = req_builder.header("Prefer", prefer.clone());
-     }
-     if let Some(ref user_uid) = configuration.user_uid {
-         req_builder = req_builder.header("user-uid", user_uid.clone());
-     }
-     ```
-   - This replaces the stock `if let Some(ref apikey) = configuration.api_key {
-     ...build `Prefer` from the api key...}` block (present in **every** API
-     file).
+   - API files set headers directly (replacing the stock api-key-`Prefer` block).
 
-3. **Scoped local-var naming.** The template prefixes locals by scope, so
-   stock `p_system_id` → committed `p_path_system_id`, `p_coams_id` →
-   `p_query_coams_id`, `p_body_...` → `p_body_...` (unchanged). Scope is
-   determined by usage: path params go in `p_path_`, query params in
-   `p_query_`, body in `p_body_`.
+3. **Scoped local-var naming.** Locals are prefixed by scope, so
+   `p_system_id` → `p_path_system_id`, `p_coams_id` → `p_query_coams_id`,
+   body stays `p_body_...`. Scope is determined by usage (path/query/body).
 
 4. **`configuration.rs` extras.** Custom `ApiKey` `Debug` impl that redacts the
-   credential (`ApiKey { key, prefix }` → prints the prefix, not the key), plus
-   a custom `Configuration` `Debug` impl that omits `secret_key` / `user_uid`,
-   and `pub use reqwest::Client;` re-export.
+   credential, a custom `Configuration` `Debug` impl that omits
+   `secret_key` / `user_uid`, and `pub use reqwest::Client;` re-export.
 
 5. **`static_code_scans_api.rs` `Vec` signature.**
-   `add_static_code_scans_by_system_id(&self, system_id, static_code: Vec<StaticCodeRequestPostBody>)`
-   (custom commit `e442205`); serde then serializes the `Vec` as the required
-   single-element array `[ {...} ]`.
+   `add_static_code_scans_by_system_id(&self, system_id, static_code: Vec<StaticCodeRequestPostBody>)`;
+   serde serializes the `Vec` as the required single-element array
+   `[ {...} ]`. (Covered by `tests/byte_parity.rs` / `tests/parity_capture.rs`.)
 
-## Regeneration procedure (non-destructive)
+## Generated-code lint suppression (clippy)
 
-```bash
-source ~/.local/toolchain/env.sh
-./regen_client.sh                 # temp regen + drift report
-./regen_client.sh context=3       # unified diff for review
+The `rust` template emits two idioms that reappear on **every** regen
+(`clippy::needless_return` × ~209, `clippy::derivable_impls` × ~53 — all inside
+the generated `client/`). These are template-level, so they are suppressed at
+the crate root in `ct/lib.mustache`, which mirrors into
+`client/src/lib.rs`:
+
+```rust
+#![allow(clippy::needless_return)]
+#![allow(clippy::derivable_impls)]
 ```
 
-Only after the 5 recoveries above are applied (e.g. via the user's custom
-template) will the regen be byte-identical. Until the custom template is
-recreated, `regen_client.sh` is a **drift guard**: if the spec changes, the
-divergent set changes and the client is stale.
+This lets `cargo clippy --workspace --all-targets -- -D warnings` pass for the
+**whole** two-crate workspace (both the generated `client/` and the
+hand-authored `emasser` bin), rather than excluding `client/` from the gate.
+
+## CI gates (stable-Rust compatible)
+
+The generator emits idioms on 100% of the generated code, so the CI gates are
+scoped to keep the generated crate excluded **by construction**, not by hand:
+
+- **Clippy:** `cargo clippy --workspace --all-targets -- -D warnings` — passes
+  because `client/src/lib.rs` carries the crate-level allows above.
+- **rustfmt:** `cargo fmt -p emasser -- --check` — scopes to the hand-authored
+  package (`src/` + `tests/`). `client/` is generated and must NOT be
+  reformatted; on stable the rustfmt `ignore` list is a nightly-only feature,
+  so scoping is done via `-p emasser` (see `rustfmt.toml`).
 
 ## Build/run rule
 

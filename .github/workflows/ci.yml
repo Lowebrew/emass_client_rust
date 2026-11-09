@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Build + test (${{ matrix.rust }})
+    name: Build + lint + test (${{ matrix.rust }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -36,11 +36,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-${{ matrix.rust }}-
 
+      # The generated crate (`client/`) is 100% reproducible from the template
+      # (regen.sh); it is excluded from clippy/fmt by construction:
+      # lib.rs ships the crate-level `#![allow(clippy::needless_return)]` and
+      # `#![allow(clippy::derivable_impls)]` that the generator emits.
+      - name: Clippy — whole workspace, warnings are errors
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+
+      - name: rustfmt — hand-authored crate only
+        # `cargo fmt --all` would also format the generated client/; on stable
+        # the rustfmt `ignore` list is nightly-only, so we scope to the
+        # hand-authored package (src/ + tests/).
+        run: cargo fmt -p emasser -- --check
+
       - name: Build all targets
         run: cargo build --locked --all-targets
 
-      - name: Unit tests
-        run: cargo test --locked --lib
+      - name: Unit + integration tests
+        run: cargo test --locked --workspace
 
       - name: Byte-parity + wire-capture tests
         run: cargo test --locked --test byte_parity --test parity_capture
