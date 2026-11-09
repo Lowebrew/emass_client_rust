@@ -310,6 +310,13 @@ implements CodegenConfig {
         this.additionalProperties.put(EXTERN_CRATE_NAME, this.getExternCrateName());
         this.additionalProperties.put("apiDocPath", this.apiDocPath);
         this.additionalProperties.put("modelDocPath", this.modelDocPath);
+        // --- emass_client_rust: pin git identity used by git_push.sh.mustache ---
+        this.setGitHost("github.com");
+        this.setGitUserId("lowebrew");
+        this.setGitRepoId("emass_client_rust");
+        this.additionalProperties.put("gitHost", "github.com");
+        this.additionalProperties.put("gitUserId", "lowebrew");
+        this.additionalProperties.put("gitRepoId", "emass_client_rust");
         if (HYPER_LIBRARY.equals(this.getLibrary())) {
             this.additionalProperties.put(HYPER_LIBRARY, "true");
         } else if (HYPER0X_LIBRARY.equals(this.getLibrary())) {
