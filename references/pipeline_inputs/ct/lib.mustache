@@ -1,5 +1,11 @@
 #![allow(unused_imports)]
 #![allow(clippy::too_many_arguments)]
+// Generated-code idioms emitted by the rust generator (needless `return`;
+// `impl Default` blocks that could be `#[derive(Default)]`). Suppressed at the
+// crate root so `cargo clippy --workspace -- -D warnings` stays clean for the
+// whole two-crate workspace after every regeneration.
+#![allow(clippy::needless_return)]
+#![allow(clippy::derivable_impls)]
 
 extern crate serde_repr;
 extern crate serde;

@@ -14,24 +14,33 @@ mod converters;
 use anyhow::{anyhow, bail, Context, Result};
 use std::collections::HashMap;
 use std::env;
-use std::io::Write;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use emass_client::apis::configuration::ApiKey;
 use emass_client::apis;
+use emass_client::apis::configuration::ApiKey;
 
 use emass_client::models::{
-    PoamRequiredFields, HwBaselineRequiredFields, SwBaselineRequiredFields,
-    StaticCodeRequestPostBody, StaticCodeRequestPostBodyApplication, StaticCodeApplicationPost,
-    // `put` group (stripped typed models accepted by the client PUT endpoints)
-    ControlsRequiredFields, PoamIds, ArtifactsRequiredFields,
-    HwBaselineReadOnlyFields, SwBaselineReadOnlyFields,
-    // `delete` group (typed body structs the client DELETE endpoints accept)
-    PoamRequestDeleteBodyInner, MilestonesRequestDeleteBodyInner,
-    ArtifactsRequestDeleteBodyInner, HwBaselineRequestDeleteBodyInner,
-    SwBaselineRequestDeleteBodyInner, CloudResourcesDeleteBodyInner,
+    ArtifactsRequestDeleteBodyInner,
+    ArtifactsRequiredFields,
+    CloudResourcesDeleteBodyInner,
     ContainerResourcesDeleteBodyInner,
+    // `put` group (stripped typed models accepted by the client PUT endpoints)
+    ControlsRequiredFields,
+    HwBaselineReadOnlyFields,
+    HwBaselineRequestDeleteBodyInner,
+    HwBaselineRequiredFields,
+    MilestonesRequestDeleteBodyInner,
+    PoamIds,
+    // `delete` group (typed body structs the client DELETE endpoints accept)
+    PoamRequestDeleteBodyInner,
+    StaticCodeApplicationPost,
+    StaticCodeRequestPostBody,
+    StaticCodeRequestPostBodyApplication,
+    SwBaselineReadOnlyFields,
+    SwBaselineRequestDeleteBodyInner,
+    SwBaselineRequiredFields,
 };
 
 const HELP: &str = "\
@@ -144,7 +153,10 @@ async fn cmd_test_connection() -> Result<()> {
 /// `get systems all` | `get systems byId`
 async fn cmd_systems(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "all".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "all".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "all" => {
@@ -173,8 +185,12 @@ async fn cmd_systems(args: &[String]) -> Result<()> {
                 .context("`get systems byId` requires --systemId <id>")?
                 .parse()
                 .context("--systemId must be an integer")?;
-            match apis::systems_api::get_system(&config, sys_id, opts.get("policy").map(String::as_str))
-                .await
+            match apis::systems_api::get_system(
+                &config,
+                sys_id,
+                opts.get("policy").map(String::as_str),
+            )
+            .await
             {
                 Ok(resp) => print_output(&resp),
                 Err(err) => print_err(&err),
@@ -188,7 +204,10 @@ async fn cmd_systems(args: &[String]) -> Result<()> {
 /// `get roles all` | `get roles byCategory`
 async fn cmd_roles(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "all".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "all".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "all" => {
@@ -225,7 +244,10 @@ async fn cmd_roles(args: &[String]) -> Result<()> {
 /// `get controls forSystem`
 async fn cmd_controls(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "forsystem".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "forsystem".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "forsystem" => {
@@ -254,7 +276,10 @@ async fn cmd_controls(args: &[String]) -> Result<()> {
 /// `get poams forSystem` | `get poams byPoamId`
 async fn cmd_poams(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "forsystem".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "forsystem".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "forsystem" => {
@@ -319,7 +344,10 @@ async fn cmd_poams(args: &[String]) -> Result<()> {
 /// `get testResults forSystem`
 async fn cmd_test_results(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "forsystem".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "forsystem".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "forsystem" => {
@@ -351,7 +379,10 @@ async fn cmd_test_results(args: &[String]) -> Result<()> {
 /// `get milestones byPoamId` | `get milestones byMilestoneId`
 async fn cmd_milestones(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "bypoamid".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "bypoamid".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "bypoamid" => {
@@ -412,7 +443,10 @@ async fn cmd_milestones(args: &[String]) -> Result<()> {
 /// `get artifacts forSystem`
 async fn cmd_artifacts(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "forsystem".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "forsystem".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "forsystem" => {
@@ -483,9 +517,15 @@ async fn cmd_artifacts(args: &[String]) -> Result<()> {
 // match arm per dashboard.
 macro_rules! dashboards_call {
     ($config:ident, $org_id:ident, $exclude_inherited:ident, $page_index:ident, $page_size:ident, $mod:ident::$fn:ident) => {{
-        let resp = apis::$mod::$fn(&$config, $org_id, $exclude_inherited, $page_index, $page_size)
-            .await
-            .context("dashboards: request failed")?;
+        let resp = apis::$mod::$fn(
+            &$config,
+            $org_id,
+            $exclude_inherited,
+            $page_index,
+            $page_size,
+        )
+        .await
+        .context("dashboards: request failed")?;
         print_output(&resp);
     }};
 }
@@ -585,11 +625,10 @@ async fn cmd_system(args: &[String]) -> Result<()> {
             if system_name.is_none() && system_owner.is_none() {
                 bail!("usage: emasser get system id [--system_name <name>] [--system_owner <owner>] (one required)");
             }
-            let resp = apis::systems_api::get_systems(
-                &config, None, None, None, None, None, None, None,
-            )
-            .await
-            .context("system id: request failed")?;
+            let resp =
+                apis::systems_api::get_systems(&config, None, None, None, None, None, None, None)
+                    .await
+                    .context("system id: request failed")?;
             let matched: Vec<&emass_client::models::Systems> = resp
                 .data
                 .as_ref()
@@ -597,8 +636,14 @@ async fn cmd_system(args: &[String]) -> Result<()> {
                     systems
                         .iter()
                         .filter(|s| {
-                            let nm = s.name.as_ref().and_then(|inner| inner.as_ref().map(|v| v.as_str()));
-                            let ow = s.owning_organization.as_ref().and_then(|inner| inner.as_ref().map(|v| v.as_str()));
+                            let nm = s
+                                .name
+                                .as_ref()
+                                .and_then(|inner| inner.as_ref().map(|v| v.as_str()));
+                            let ow = s
+                                .owning_organization
+                                .as_ref()
+                                .and_then(|inner| inner.as_ref().map(|v| v.as_str()));
                             match (system_name.as_deref(), system_owner.as_deref()) {
                                 (Some(n), None) => nm == Some(n),
                                 (None, Some(o)) => ow == Some(o),
@@ -613,13 +658,19 @@ async fn cmd_system(args: &[String]) -> Result<()> {
                 bail!("no system matched the given system_name/system_owner");
             }
             for s in &matched {
-                let nm = s.name.as_ref().and_then(|inner| inner.as_ref().map(|v| v.as_str()));
-                let ow = s.owning_organization.as_ref().and_then(|inner| inner.as_ref().map(|v| v.as_str()));
+                let nm = s
+                    .name
+                    .as_ref()
+                    .and_then(|inner| inner.as_ref().map(|v| v.as_str()));
+                let ow = s
+                    .owning_organization
+                    .as_ref()
+                    .and_then(|inner| inner.as_ref().map(|v| v.as_str()));
                 println!(
                     "{} - {} - {}",
                     s.system_id.unwrap_or_default(),
-                    ow.as_deref().unwrap_or(""),
-                    nm.as_deref().unwrap_or("")
+                    ow.unwrap_or(""),
+                    nm.unwrap_or("")
                 );
             }
             Ok(())
@@ -644,7 +695,11 @@ async fn cmd_system(args: &[String]) -> Result<()> {
 // ---------------------------------------------------------------------------
 
 /// Parse an optional i32 flag (e.g. `--pageIndex`); `None` when absent.
-fn parse_opt_i32(opts: &HashMap<String, String>, key: &str, ctx: &'static str) -> Result<Option<i32>> {
+fn parse_opt_i32(
+    opts: &HashMap<String, String>,
+    key: &str,
+    ctx: &'static str,
+) -> Result<Option<i32>> {
     match opts.get(key) {
         Some(v) => Ok(v.parse::<i32>().context(ctx).map(Some)?),
         None => Ok(None),
@@ -658,7 +713,10 @@ fn parse_opt_i32(opts: &HashMap<String, String>, key: &str, ctx: &'static str) -
 /// `get cac controls`
 async fn cmd_cac(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "controls".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "controls".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "controls" => {
@@ -680,14 +738,19 @@ async fn cmd_cac(args: &[String]) -> Result<()> {
             }
             Ok(())
         }
-        _ => bail!("usage: emasser get cac controls (e.g. `emasser get cac controls --systemId 5`)"),
+        _ => {
+            bail!("usage: emasser get cac controls (e.g. `emasser get cac controls --systemId 5`)")
+        }
     }
 }
 
 /// `get pac package`
 async fn cmd_pac(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "package".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "package".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "package" => {
@@ -697,9 +760,7 @@ async fn cmd_pac(args: &[String]) -> Result<()> {
                 .context("`get pac package` requires --systemId <id>")?
                 .parse()
                 .context("--systemId must be an integer")?;
-            match apis::pac_api::get_system_pac(&config, sys_id)
-                .await
-            {
+            match apis::pac_api::get_system_pac(&config, sys_id).await {
                 Ok(resp) => print_output(&resp),
                 Err(err) => print_err(&err),
             }
@@ -712,7 +773,10 @@ async fn cmd_pac(args: &[String]) -> Result<()> {
 /// `get hardware assets`
 async fn cmd_hardware(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "assets".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "assets".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "assets" => {
@@ -734,14 +798,19 @@ async fn cmd_hardware(args: &[String]) -> Result<()> {
             }
             Ok(())
         }
-        _ => bail!("usage: emasser get hardware assets (e.g. `emasser get hardware assets --systemId 5`)"),
+        _ => bail!(
+            "usage: emasser get hardware assets (e.g. `emasser get hardware assets --systemId 5`)"
+        ),
     }
 }
 
 /// `get software assets`
 async fn cmd_software(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "assets".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "assets".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "assets" => {
@@ -763,14 +832,19 @@ async fn cmd_software(args: &[String]) -> Result<()> {
             }
             Ok(())
         }
-        _ => bail!("usage: emasser get software assets (e.g. `emasser get software assets --systemId 5`)"),
+        _ => bail!(
+            "usage: emasser get software assets (e.g. `emasser get software assets --systemId 5`)"
+        ),
     }
 }
 
 /// `get workflow_definitions forSite`
 async fn cmd_workflow_definitions(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "forsite".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "forsite".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "forsite" => {
@@ -794,7 +868,10 @@ async fn cmd_workflow_definitions(args: &[String]) -> Result<()> {
 /// `get workflow_instances all` | `get workflow_instances byInstanceId`
 async fn cmd_workflow_instances(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "all".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "all".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "all" => {
@@ -838,7 +915,10 @@ async fn cmd_workflow_instances(args: &[String]) -> Result<()> {
 /// `get cmmc assessments`
 async fn cmd_cmmc(args: &[String]) -> Result<()> {
     let config = build_config()?;
-    let sub = args.first().map(|s| s.to_lowercase()).unwrap_or_else(|| "assessments".into());
+    let sub = args
+        .first()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "assessments".into());
     let opts_args = args.get(1..).unwrap_or(&[]);
     match sub.as_str() {
         "assessments" => {
@@ -864,20 +944,29 @@ async fn cmd_cmmc(args: &[String]) -> Result<()> {
 // ---------------------------------------------------------------------------
 
 fn build_config() -> Result<emass_client::apis::configuration::Configuration> {
-    let host = env::var("EMASSER_HOST_URL")
-        .with_context(|| "EMASSER_HOST_URL is not set")?;
-    let api_key = env::var("EMASSER_API_KEY")
-        .with_context(|| "EMASSER_API_KEY is not set")?;
+    let host = env::var("EMASSER_HOST_URL").with_context(|| "EMASSER_HOST_URL is not set")?;
+    let api_key = env::var("EMASSER_API_KEY").with_context(|| "EMASSER_API_KEY is not set")?;
 
-    let cert = env::var("EMASSER_CERT_FILE_PATH").ok().filter(|s| !s.is_empty());
-    let key = env::var("EMASSER_KEY_FILE_PATH").ok().filter(|s| !s.is_empty());
-    let password = env::var("EMASSER_KEY_FILE_PASSWORD").ok().filter(|s| !s.is_empty());
+    let cert = env::var("EMASSER_CERT_FILE_PATH")
+        .ok()
+        .filter(|s| !s.is_empty());
+    let key = env::var("EMASSER_KEY_FILE_PATH")
+        .ok()
+        .filter(|s| !s.is_empty());
+    let password = env::var("EMASSER_KEY_FILE_PASSWORD")
+        .ok()
+        .filter(|s| !s.is_empty());
     let verify_ssl = match env::var("EMASSER_VERIFY_SSL") {
         Ok(v) => v != "false",
         Err(_) => true,
     };
 
-    let client = build_client(verify_ssl, cert.as_deref(), key.as_deref(), password.as_deref())?;
+    let client = build_client(
+        verify_ssl,
+        cert.as_deref(),
+        key.as_deref(),
+        password.as_deref(),
+    )?;
 
     let mut config = emass_client::apis::configuration::Configuration::default();
     // eMASS forces the https scheme. The generated client builds the absolute
@@ -941,9 +1030,7 @@ fn build_client(
     // Security headers (`api-key`, `user-uid`, `Prefer`) are injected by the
     // generated client from the Configuration fields populated in build_config,
     // which also handle env-driven defaults and the api_key fallback.
-    builder
-        .build()
-        .context("building reqwest client")
+    builder.build().context("building reqwest client")
 }
 
 fn mk_identity(cert: &[u8], key: &[u8], password: Option<&str>) -> Result<reqwest::Identity> {
@@ -961,7 +1048,8 @@ fn mk_identity(cert: &[u8], key: &[u8], password: Option<&str>) -> Result<reqwes
     let mut buf = Vec::new();
     buf.extend_from_slice(key);
     buf.extend_from_slice(cert);
-    reqwest::Identity::from_pem(&buf).context("loading client certificate/key identity via from_pem")
+    reqwest::Identity::from_pem(&buf)
+        .context("loading client certificate/key identity via from_pem")
 }
 
 // ---------------------------------------------------------------------------
@@ -969,10 +1057,14 @@ fn mk_identity(cert: &[u8], key: &[u8], password: Option<&str>) -> Result<reqwes
 // ---------------------------------------------------------------------------
 
 fn print_output<T: serde::Serialize>(resp: &T) {
-    let display_nulls =
-        env::var("EMASSER_CLI_DISPLAY_NULL").ok().map(|v| v == "true").unwrap_or(true);
-    let display_dt =
-        env::var("EMASSER_EPOCH_TO_DATETIME").ok().map(|v| v == "true").unwrap_or(false);
+    let display_nulls = env::var("EMASSER_CLI_DISPLAY_NULL")
+        .ok()
+        .map(|v| v == "true")
+        .unwrap_or(true);
+    let display_dt = env::var("EMASSER_EPOCH_TO_DATETIME")
+        .ok()
+        .map(|v| v == "true")
+        .unwrap_or(false);
     let value: serde_json::Value = serde_json::to_value(resp).unwrap_or(serde_json::Value::Null);
     let formatted = converters::to_output_hash(&value, display_nulls, display_dt);
     println!("{}", converters::pretty_generate(&formatted));
@@ -982,8 +1074,8 @@ fn print_err<T>(err: &emass_client::apis::Error<T>) {
     match err {
         emass_client::apis::Error::ResponseError(rc) => {
             // eMASS error bodies look like: { "Error message": "...", "Response body": "{...}" }
-            let parsed: serde_json::Value =
-                serde_json::from_str(&rc.content).unwrap_or(serde_json::Value::String(rc.content.clone()));
+            let parsed: serde_json::Value = serde_json::from_str(&rc.content)
+                .unwrap_or(serde_json::Value::String(rc.content.clone()));
             println!("{}", serde_json::to_string_pretty(&parsed).unwrap());
         }
         emass_client::apis::Error::Reqwest(e) => {
@@ -1040,13 +1132,20 @@ async fn dispatch_post(args: &[String]) -> Result<()> {
         .map(|s| s.to_lowercase())
         .collect();
     let sub: Vec<&str> = lower.iter().map(String::as_str).collect();
-    let flags_start = args.iter().position(|s| s.starts_with("--")).unwrap_or(args.len());
+    let flags_start = args
+        .iter()
+        .position(|s| s.starts_with("--"))
+        .unwrap_or(args.len());
     let opts = parse_options(&args[flags_start..]);
-    match sub.get(0).copied() {
+    match sub.first().copied() {
         Some("poams") => match sub.as_slice() {
             ["poams", "add"] => cmd_post_poams_add(&opts).await,
-            ["poams", "add", "with", "milestones"] => cmd_post_poams_add_with_milestones(&opts).await,
-            ["poams", "add", "with", "risk", "analysis"] => cmd_post_poams_add_with_risk_analysis(&opts).await,
+            ["poams", "add", "with", "milestones"] => {
+                cmd_post_poams_add_with_milestones(&opts).await
+            }
+            ["poams", "add", "with", "risk", "analysis"] => {
+                cmd_post_poams_add_with_risk_analysis(&opts).await
+            }
             _ => bail!("usage: emasser post poams add[| with milestones| with risk analysis]"),
         },
         Some("test_results") => match sub.as_slice() {
@@ -1107,7 +1206,9 @@ async fn dispatch_post(args: &[String]) -> Result<()> {
 
 fn require_int(opts: &HashMap<String, String>, key: &str) -> Result<i32> {
     match opts.get(key) {
-        Some(v) => v.parse::<i32>().with_context(|| format!("`--{key}` must be an integer")),
+        Some(v) => v
+            .parse::<i32>()
+            .with_context(|| format!("`--{key}` must be an integer")),
         None => bail!("`--{key}` is required"),
     }
 }
@@ -1116,45 +1217,27 @@ fn parse_status(s: &str) -> emass_client::models::poam_required_fields::Status {
     match s.to_lowercase().as_str() {
         "completed" => emass_client::models::poam_required_fields::Status::Completed,
         "archived" => emass_client::models::poam_required_fields::Status::Archived,
-        "notapplicable" | "not_applicable" => emass_client::models::poam_required_fields::Status::NotApplicable,
-        "riskaccepted" | "risk accepted" => emass_client::models::poam_required_fields::Status::RiskAccepted,
+        "notapplicable" | "not_applicable" => {
+            emass_client::models::poam_required_fields::Status::NotApplicable
+        }
+        "riskaccepted" | "risk accepted" => {
+            emass_client::models::poam_required_fields::Status::RiskAccepted
+        }
         _ => emass_client::models::poam_required_fields::Status::Ongoing,
     }
 }
 
 fn parse_bool(s: &str) -> bool {
-    matches!(s.to_lowercase().as_str(), "true" | "t" | "yes" | "y" | "1" | "on")
-}
-
-// Build the client-exposed PoamRequiredFields from CLI options.
-fn poam_required_from_opts(opts: &HashMap<String, String>) -> PoamRequiredFields {
-    let mut p = PoamRequiredFields::new();
-    if let Some(s) = opts.get("status") {
-        p.status = Some(parse_status(s));
-    }
-    if let Some(v) = opts.get("vulnerabilityDescription") {
-        p.vulnerability_description = Some(v.clone());
-    }
-    if let Some(v) = opts.get("sourceIdentifyingVulnerability") {
-        p.source_identifying_vulnerability = Some(v.clone());
-    }
-    if let Some(v) = opts.get("pocOrganization") {
-        p.poc_organization = Some(v.clone());
-    }
-    if let Some(v) = opts.get("resources") {
-        p.resources = Some(v.clone());
-    }
-    if let Some(v) = opts.get("identifiedInCfoAuditOrOtherReview") {
-        p.identified_in_cfo_audit_or_other_review = Some(parse_bool(v));
-    }
-    p
+    matches!(
+        s.to_lowercase().as_str(),
+        "true" | "t" | "yes" | "y" | "1" | "on"
+    )
 }
 
 // Parse --milestones / static-code --findings JSON: accept an array or a
 // single object; return a Vec of milestone/finding JSON objects.
 fn parse_json_list(s: &str) -> Result<Vec<serde_json::Value>> {
-    let v: serde_json::Value =
-        serde_json::from_str(s).context("failed to parse JSON argument")?;
+    let v: serde_json::Value = serde_json::from_str(s).context("failed to parse JSON argument")?;
     if let Some(arr) = v.as_array() {
         Ok(arr.clone())
     } else {
@@ -1166,7 +1249,9 @@ fn parse_severity(s: &str) -> emass_client::models::static_code_application_post
     match s.to_lowercase().as_str() {
         "critical" => emass_client::models::static_code_application_post::RawSeverity::Critical,
         "high" => emass_client::models::static_code_application_post::RawSeverity::High,
-        "moderate" | "medium" => emass_client::models::static_code_application_post::RawSeverity::Medium,
+        "moderate" | "medium" => {
+            emass_client::models::static_code_application_post::RawSeverity::Medium
+        }
         "low" => emass_client::models::static_code_application_post::RawSeverity::Low,
         _ => emass_client::models::static_code_application_post::RawSeverity::Low,
     }
@@ -1183,7 +1268,10 @@ fn parse_severity(s: &str) -> emass_client::models::static_code_application_post
 /// `milestones` array match the reference exactly. A milestone's
 /// `scheduledCompletionDate` is coerced to a Float via `.to_f` (reference), e.g.
 /// `1700000001` → `1700000001.0`.
-fn poams_body(opts: &HashMap<String, String>, include_milestones: bool) -> Result<serde_json::Value> {
+fn poams_body(
+    opts: &HashMap<String, String>,
+    include_milestones: bool,
+) -> Result<serde_json::Value> {
     use serde_json::{Map, Value};
 
     // :numeric → Integer if integral, else Float. Matches the reference, which emits
@@ -1193,7 +1281,9 @@ fn poams_body(opts: &HashMap<String, String>, include_milestones: bool) -> Resul
         if let Ok(i) = s.parse::<i64>() {
             Ok(Value::from(i))
         } else {
-            let f: f64 = s.parse().map_err(|_| anyhow::anyhow!("invalid number: {s}"))?;
+            let f: f64 = s
+                .parse()
+                .map_err(|_| anyhow::anyhow!("invalid number: {s}"))?;
             Ok(Value::from(f))
         }
     }
@@ -1205,10 +1295,16 @@ fn poams_body(opts: &HashMap<String, String>, include_milestones: bool) -> Resul
         body.insert("status".to_string(), serde_json::json!(parse_status(v)));
     }
     if let Some(v) = opts.get("vulnerabilityDescription") {
-        body.insert("vulnerabilityDescription".to_string(), Value::from(v.clone()));
+        body.insert(
+            "vulnerabilityDescription".to_string(),
+            Value::from(v.clone()),
+        );
     }
     if let Some(v) = opts.get("sourceIdentifyingVulnerability") {
-        body.insert("sourceIdentifyingVulnerability".to_string(), Value::from(v.clone()));
+        body.insert(
+            "sourceIdentifyingVulnerability".to_string(),
+            Value::from(v.clone()),
+        );
     }
     if let Some(v) = opts.get("pocOrganization") {
         body.insert("pocOrganization".to_string(), Value::from(v.clone()));
@@ -1217,7 +1313,10 @@ fn poams_body(opts: &HashMap<String, String>, include_milestones: bool) -> Resul
         body.insert("resources".to_string(), Value::from(v.clone()));
     }
     if let Some(v) = opts.get("identifiedInCfoAuditOrOtherReview") {
-        body.insert("identifiedInCFOAuditOrOtherReview".to_string(), Value::from(parse_bool(v)));
+        body.insert(
+            "identifiedInCFOAuditOrOtherReview".to_string(),
+            Value::from(parse_bool(v)),
+        );
     }
 
     // ---- optional_fields (reference attr order; all String except noted) ----
@@ -1258,7 +1357,10 @@ fn poams_body(opts: &HashMap<String, String>, include_milestones: bool) -> Resul
         body.insert("mitigations".to_string(), Value::from(v.clone()));
     }
     if let Some(v) = opts.get("resultingResidualRiskLevelAfterProposedMitigations") {
-        body.insert("resultingResidualRiskLevelAfterProposedMitigations".to_string(), Value::from(v.clone()));
+        body.insert(
+            "resultingResidualRiskLevelAfterProposedMitigations".to_string(),
+            Value::from(v.clone()),
+        );
     }
     if let Some(v) = opts.get("predisposingConditions") {
         body.insert("predisposingConditions".to_string(), Value::from(v.clone()));
@@ -1297,34 +1399,64 @@ fn poams_body(opts: &HashMap<String, String>, include_milestones: bool) -> Resul
         body.insert("comments".to_string(), Value::from(v.clone()));
     }
     if let Some(v) = opts.get("personnelResourcesFundedBaseHours") {
-        body.insert("personnelResourcesFundedBaseHours".to_string(), parse_numeric(v)?);
+        body.insert(
+            "personnelResourcesFundedBaseHours".to_string(),
+            parse_numeric(v)?,
+        );
     }
     if let Some(v) = opts.get("personnelResourcesCostCode") {
-        body.insert("personnelResourcesCostCode".to_string(), Value::from(v.clone()));
+        body.insert(
+            "personnelResourcesCostCode".to_string(),
+            Value::from(v.clone()),
+        );
     }
     if let Some(v) = opts.get("personnelResourcesUnfundedBaseHours") {
-        body.insert("personnelResourcesUnfundedBaseHours".to_string(), parse_numeric(v)?);
+        body.insert(
+            "personnelResourcesUnfundedBaseHours".to_string(),
+            parse_numeric(v)?,
+        );
     }
     if let Some(v) = opts.get("personnelResourcesNonfundingObstacle") {
-        body.insert("personnelResourcesNonfundingObstacle".to_string(), Value::from(v.clone()));
+        body.insert(
+            "personnelResourcesNonfundingObstacle".to_string(),
+            Value::from(v.clone()),
+        );
     }
     if let Some(v) = opts.get("personnelResourcesNonfundingObstacleOtherReason") {
-        body.insert("personnelResourcesNonfundingObstacleOtherReason".to_string(), Value::from(v.clone()));
+        body.insert(
+            "personnelResourcesNonfundingObstacleOtherReason".to_string(),
+            Value::from(v.clone()),
+        );
     }
     if let Some(v) = opts.get("nonPersonnelResourcesFundedAmount") {
-        body.insert("nonPersonnelResourcesFundedAmount".to_string(), parse_numeric(v)?);
+        body.insert(
+            "nonPersonnelResourcesFundedAmount".to_string(),
+            parse_numeric(v)?,
+        );
     }
     if let Some(v) = opts.get("nonPersonnelResourcesCostCode") {
-        body.insert("nonPersonnelResourcesCostCode".to_string(), Value::from(v.clone()));
+        body.insert(
+            "nonPersonnelResourcesCostCode".to_string(),
+            Value::from(v.clone()),
+        );
     }
     if let Some(v) = opts.get("nonPersonnelResourcesUnfundedAmount") {
-        body.insert("nonPersonnelResourcesUnfundedAmount".to_string(), parse_numeric(v)?);
+        body.insert(
+            "nonPersonnelResourcesUnfundedAmount".to_string(),
+            parse_numeric(v)?,
+        );
     }
     if let Some(v) = opts.get("nonPersonnelResourcesNonfundingObstacle") {
-        body.insert("nonPersonnelResourcesNonfundingObstacle".to_string(), Value::from(v.clone()));
+        body.insert(
+            "nonPersonnelResourcesNonfundingObstacle".to_string(),
+            Value::from(v.clone()),
+        );
     }
     if let Some(v) = opts.get("nonPersonnelResourcesNonfundingObstacleOtherReason") {
-        body.insert("nonPersonnelResourcesNonfundingObstacleOtherReason".to_string(), Value::from(v.clone()));
+        body.insert(
+            "nonPersonnelResourcesNonfundingObstacleOtherReason".to_string(),
+            Value::from(v.clone()),
+        );
     }
 
     // ---- milestones (always emitted as a single-element array) ----
@@ -1338,13 +1470,20 @@ fn poams_body(opts: &HashMap<String, String>, include_milestones: bool) -> Resul
                     milestone.insert("description".to_string(), d.clone());
                 }
                 if let Some(sc) = base.get("scheduledCompletionDate") {
-                    let f = sc.as_f64().or_else(|| sc.as_i64().map(|i| i as f64))
-                        .ok_or_else(|| anyhow::anyhow!("milestone scheduledCompletionDate must be a number"))?;
+                    let f = sc
+                        .as_f64()
+                        .or_else(|| sc.as_i64().map(|i| i as f64))
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("milestone scheduledCompletionDate must be a number")
+                        })?;
                     milestone.insert("scheduledCompletionDate".to_string(), Value::from(f));
                 }
             }
         }
-        body.insert("milestones".to_string(), Value::Array(vec![Value::Object(milestone)]));
+        body.insert(
+            "milestones".to_string(),
+            Value::Array(vec![Value::Object(milestone)]),
+        );
     }
 
     Ok(Value::Object(body))
@@ -1424,10 +1563,12 @@ async fn cmd_post_test_results_add(opts: &HashMap<String, String>) -> Result<()>
         body["testType"] = serde_json::Value::from("CSP");
     }
     if body.get("testDate").is_none() {
-        body["testDate"] = serde_json::Value::from(std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs());
+        body["testDate"] = serde_json::Value::from(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        );
     }
     match apis::test_results_api::add_test_results_by_system_id(&config, sys_id, vec![body]).await {
         Ok(resp) => print_output(&resp),
@@ -1452,12 +1593,20 @@ async fn cmd_post_milestones_add(opts: &HashMap<String, String>) -> Result<()> {
     let config = build_config()?;
     let sys_id = require_int(opts, "systemId")?;
     let poam_id = require_int(opts, "poamId")?;
-    let v = opts.get("description")
+    let v = opts
+        .get("description")
         .or_else(|| opts.get("milestones"))
         .ok_or_else(|| anyhow!("`milestones add` requires --description <...>"))?;
     let mls = parse_json_list(v)?;
     for m in mls {
-        match apis::milestones_api::add_milestone_by_system_id_and_poam_id(&config, sys_id, poam_id, vec![m.clone()]).await {
+        match apis::milestones_api::add_milestone_by_system_id_and_poam_id(
+            &config,
+            sys_id,
+            poam_id,
+            vec![m.clone()],
+        )
+        .await
+        {
             Ok(r) => print_output(&r),
             Err(e) => print_err(&e),
         }
@@ -1468,12 +1617,24 @@ async fn cmd_post_milestones_add(opts: &HashMap<String, String>) -> Result<()> {
 // ---- cac / pac -----------------------------------------------------------
 fn cac_body(opts: &HashMap<String, String>) -> serde_json::Value {
     let mut b = serde_json::json!({});
-    if let Some(v) = opts.get("controlAcronym") { b["controlAcronym"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("complianceStatus") { b["complianceStatus"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("currentStageName") { b["currentStageName"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("currentStage") { b["currentStage"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("totalStages") { b["totalStages"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("comment") { b["comment"] = serde_json::Value::from(v.clone()); }
+    if let Some(v) = opts.get("controlAcronym") {
+        b["controlAcronym"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("complianceStatus") {
+        b["complianceStatus"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("currentStageName") {
+        b["currentStageName"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("currentStage") {
+        b["currentStage"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("totalStages") {
+        b["totalStages"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("comment") {
+        b["comment"] = serde_json::Value::from(v.clone());
+    }
     b
 }
 
@@ -1489,13 +1650,27 @@ async fn cmd_post_cac_add(opts: &HashMap<String, String>) -> Result<()> {
 
 fn pac_body(opts: &HashMap<String, String>) -> serde_json::Value {
     let mut b = serde_json::json!({});
-    if let Some(v) = opts.get("workflow") { b["workflow"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("name") { b["name"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("currentStageName") { b["currentStageName"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("currentStage") { b["currentStage"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("totalStages") { b["totalStages"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("daysAtCurrentStage") { b["daysAtCurrentStage"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("comment") { b["comment"] = serde_json::Value::from(v.clone()); }
+    if let Some(v) = opts.get("workflow") {
+        b["workflow"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("name") {
+        b["name"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("currentStageName") {
+        b["currentStageName"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("currentStage") {
+        b["currentStage"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("totalStages") {
+        b["totalStages"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("daysAtCurrentStage") {
+        b["daysAtCurrentStage"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("comment") {
+        b["comment"] = serde_json::Value::from(v.clone());
+    }
     b
 }
 
@@ -1513,14 +1688,25 @@ async fn cmd_post_pac_add(opts: &HashMap<String, String>) -> Result<()> {
 async fn cmd_post_artifacts_add(opts: &HashMap<String, String>) -> Result<()> {
     let config = build_config()?;
     let sys_id = require_int(opts, "systemId")?;
-    let filename: PathBuf = opts.get("filename")
+    let filename: PathBuf = opts
+        .get("filename")
         .map(PathBuf::from)
         .ok_or_else(|| anyhow!("`artifacts add` requires --filename <path>"))?;
     let is_bulk = opts.get("isBulk").map(|v| parse_bool(v));
     let is_template = opts.get("isTemplate").map(|v| parse_bool(v));
     let r#type = opts.get("type").map(String::as_str);
     let category = opts.get("category").map(String::as_str);
-    match apis::artifacts_api::add_artifacts_by_system_id(&config, sys_id, filename, is_bulk, is_template, r#type, category).await {
+    match apis::artifacts_api::add_artifacts_by_system_id(
+        &config,
+        sys_id,
+        filename,
+        is_bulk,
+        is_template,
+        r#type,
+        category,
+    )
+    .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -1537,7 +1723,9 @@ async fn cmd_post_hardware_add(opts: &HashMap<String, String>) -> Result<()> {
     let config = build_config()?;
     let sys_id = require_int(opts, "systemId")?;
     let mut hw = HwBaselineRequiredFields::new();
-    if let Some(v) = opts.get("name") { hw.asset_name = Some(v.clone()); }
+    if let Some(v) = opts.get("name") {
+        hw.asset_name = Some(v.clone());
+    }
     match apis::hardware_baseline_api::add_hw_baseline_assets(&config, sys_id, vec![hw]).await {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
@@ -1549,9 +1737,15 @@ async fn cmd_post_software_add(opts: &HashMap<String, String>) -> Result<()> {
     let config = build_config()?;
     let sys_id = require_int(opts, "systemId")?;
     let mut sw = SwBaselineRequiredFields::new();
-    if let Some(v) = opts.get("name") { sw.software_name = Some(v.clone()); }
-    if let Some(v) = opts.get("vendor") { sw.software_vendor = Some(v.clone()); }
-    if let Some(v) = opts.get("version") { sw.version = Some(v.clone()); }
+    if let Some(v) = opts.get("name") {
+        sw.software_name = Some(v.clone());
+    }
+    if let Some(v) = opts.get("vendor") {
+        sw.software_vendor = Some(v.clone());
+    }
+    if let Some(v) = opts.get("version") {
+        sw.version = Some(v.clone());
+    }
     match apis::software_baseline_api::add_sw_baseline_assets(&config, sys_id, vec![sw]).await {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
@@ -1635,10 +1829,9 @@ fn cloud_body(opts: &HashMap<String, String>) -> serde_json::Value {
     if let Some(v) = opts.get("severity") {
         cr["severity"] = serde_json::Value::from(v.clone());
     }
-    b["complianceResults"] =
-        serde_json::Value::Array(vec![serde_json::Value::Object(
-            cr.as_object().unwrap().clone(),
-        )]);
+    b["complianceResults"] = serde_json::Value::Array(vec![serde_json::Value::Object(
+        cr.as_object().unwrap().clone(),
+    )]);
     b
 }
 
@@ -1647,23 +1840,38 @@ fn cloud_body(opts: &HashMap<String, String>) -> serde_json::Value {
 // body and POST it via add_container_sans_by_system_id (sibling of `cloud`).
 fn container_body(opts: &HashMap<String, String>) -> Result<serde_json::Value> {
     // Required scalar fields (emasser marks these `required: true`).
-    let container_id = opts.get("containerId").context("`container add` requires --containerId")?;
-    let container_name =
-        opts.get("containerName").context("`container add` requires --containerName")?;
+    let container_id = opts
+        .get("containerId")
+        .context("`container add` requires --containerId")?;
+    let container_name = opts
+        .get("containerName")
+        .context("`container add` requires --containerName")?;
     let time = opt_i64(opts, "time").context("`container add` requires --time <unix> (integer)")?;
-    let benchmark = opts.get("benchmark").context("`container add` requires --benchmark")?;
-    let last_seen =
-        opt_i64(opts, "lastSeen").context("`container add` requires --lastSeen <unix> (integer)")?;
-    let rule_id = opts.get("ruleId").context("`container add` requires --ruleId")?;
-    let status = opts.get("status").context("`container add` requires --status <enum>")?;
+    let benchmark = opts
+        .get("benchmark")
+        .context("`container add` requires --benchmark")?;
+    let last_seen = opt_i64(opts, "lastSeen")
+        .context("`container add` requires --lastSeen <unix> (integer)")?;
+    let rule_id = opts
+        .get("ruleId")
+        .context("`container add` requires --ruleId")?;
+    let status = opts
+        .get("status")
+        .context("`container add` requires --status <enum>")?;
 
     let mut body = serde_json::json!({});
     body["containerId"] = serde_json::Value::from(container_id.clone());
     body["containerName"] = serde_json::Value::from(container_name.clone());
     body["time"] = serde_json::Value::from(time);
-    if let Some(v) = opts.get("namespace") { body["namespace"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("podIp") { body["podIp"] = serde_json::Value::from(v.clone()); }
-    if let Some(v) = opts.get("podName") { body["podName"] = serde_json::Value::from(v.clone()); }
+    if let Some(v) = opts.get("namespace") {
+        body["namespace"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("podIp") {
+        body["podIp"] = serde_json::Value::from(v.clone());
+    }
+    if let Some(v) = opts.get("podName") {
+        body["podName"] = serde_json::Value::from(v.clone());
+    }
 
     // Tags - optional object.
     if let Some(test) = opts.get("test") {
@@ -1674,16 +1882,24 @@ fn container_body(opts: &HashMap<String, String>) -> Result<serde_json::Value> {
     let mut benchmarks =
         serde_json::json!({"benchmark": serde_json::Value::from(benchmark.clone())});
     // isBaseline defaults to true in emasser (option default), so always emit it.
-    benchmarks["isBaseline"] = serde_json::Value::from(parse_bool(opts.get("isBaseline").map_or("true", |v| v.as_str())));
-    if let Some(v) = opt_i64(opts, "version") { benchmarks["version"] = serde_json::Value::from(v); }
-    if let Some(v) = opt_i64(opts, "release") { benchmarks["release"] = serde_json::Value::from(v); }
+    benchmarks["isBaseline"] = serde_json::Value::from(parse_bool(
+        opts.get("isBaseline").map_or("true", |v| v.as_str()),
+    ));
+    if let Some(v) = opt_i64(opts, "version") {
+        benchmarks["version"] = serde_json::Value::from(v);
+    }
+    if let Some(v) = opt_i64(opts, "release") {
+        benchmarks["release"] = serde_json::Value::from(v);
+    }
 
     // Benchmarks.Results - required.
     let mut br = serde_json::json!({});
     br["lastSeen"] = serde_json::Value::from(last_seen);
     br["ruleId"] = serde_json::Value::from(rule_id.clone());
     br["status"] = serde_json::Value::from(status.clone());
-    if let Some(v) = opts.get("message") { br["message"] = serde_json::Value::from(v.clone()); }
+    if let Some(v) = opts.get("message") {
+        br["message"] = serde_json::Value::from(v.clone());
+    }
     benchmarks["results"] = serde_json::json!([br]);
 
     body["benchmarks"] = serde_json::json!([benchmarks]);
@@ -1694,7 +1910,13 @@ async fn cmd_post_container_add(opts: &HashMap<String, String>) -> Result<()> {
     let config = build_config()?;
     let sys_id = require_int(opts, "systemId")?;
     let body = container_body(opts)?;
-    match apis::container_scan_results_api::add_container_sans_by_system_id(&config, sys_id, vec![body]).await {
+    match apis::container_scan_results_api::add_container_sans_by_system_id(
+        &config,
+        sys_id,
+        vec![body],
+    )
+    .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -1729,10 +1951,8 @@ async fn cmd_post_device_scans_upload(opts: &HashMap<String, String>) -> Result<
     if scan_type == "disaStigViewerCklCklb" && !filename.contains(".ckl") {
         bail!("If the scan type is \"disaStigViewerCklCklb\" a .ckl or .cklb file is expected");
     }
-    if scan_type == "acasAsrArf" || scan_type == "policyAuditor" {
-        if !filename.contains(".zip") {
-            bail!("If the scan type is \"acasAsrArf\" or \"policyAuditor\" a .zip file is expected");
-        }
+    if (scan_type == "acasAsrArf" || scan_type == "policyAuditor") && !filename.contains(".zip") {
+        bail!("If the scan type is \"acasAsrArf\" or \"policyAuditor\" a .zip file is expected");
     }
     let is_baseline = opts.get("isBaseline").map(|v| parse_bool(v));
     match apis::device_scan_results_api::add_scan_results_by_system_id(
@@ -1753,7 +1973,13 @@ async fn cmd_post_device_scans_upload(opts: &HashMap<String, String>) -> Result<
 async fn cmd_post_cloud_add(opts: &HashMap<String, String>) -> Result<()> {
     let config = build_config()?;
     let sys_id = require_int(opts, "systemId")?;
-    match apis::cloud_resource_results_api::add_cloud_resources_by_system_id(&config, sys_id, vec![cloud_body(opts)]).await {
+    match apis::cloud_resource_results_api::add_cloud_resources_by_system_id(
+        &config,
+        sys_id,
+        vec![cloud_body(opts)],
+    )
+    .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -1764,12 +1990,24 @@ async fn cmd_post_cloud_add(opts: &HashMap<String, String>) -> Result<()> {
 async fn cmd_post_scan_add(opts: &HashMap<String, String>) -> Result<()> {
     let config = build_config()?;
     let sys_id = require_int(opts, "systemId")?;
-    let scan_type = opts.get("type").map(String::as_str).unwrap_or("NIST_SP_800_53");
-    let filename: PathBuf = opts.get("filename")
+    let scan_type = opts
+        .get("type")
+        .map(String::as_str)
+        .unwrap_or("NIST_SP_800_53");
+    let filename: PathBuf = opts
+        .get("filename")
         .map(PathBuf::from)
         .ok_or_else(|| anyhow!("`scan add` requires --filename <path>"))?;
     let is_baseline = opts.get("isBaseline").map(|v| parse_bool(v));
-    match apis::device_scan_results_api::add_scan_results_by_system_id(&config, sys_id, scan_type, filename, is_baseline).await {
+    match apis::device_scan_results_api::add_scan_results_by_system_id(
+        &config,
+        sys_id,
+        scan_type,
+        filename,
+        is_baseline,
+    )
+    .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -1794,14 +2032,14 @@ async fn cmd_post_scan_clear(opts: &HashMap<String, String>) -> Result<()> {
     }
     let name = opts
         .get("name")
-        .map(String::clone)
+        .cloned()
         .ok_or_else(|| anyhow!("`post scan clear` requires --name <application name>"))?;
     let sys_id = require_int(opts, "systemId")?;
     // `version` is required by the eMASS spec + reference tool: a clear's
     // application needs both `applicationName` and `version`.
     let version = opts
         .get("version")
-        .map(String::clone)
+        .cloned()
         .ok_or_else(|| anyhow!("`post scan clear` requires --version <app version>"))?;
     let config = build_config()?;
     let mut app = StaticCodeRequestPostBodyApplication::new();
@@ -1815,7 +2053,13 @@ async fn cmd_post_scan_clear(opts: &HashMap<String, String>) -> Result<()> {
     // eMASS requires the body as a single-element JSON array `[ {...} ]`
     // (matches emasser `post.rb` `Array.new(1, body)`). The client serializes a
     // Vec directly, so pass `vec![body]` for byte parity with the reference.
-    match apis::static_code_scans_api::add_static_code_scans_by_system_id(&config, sys_id, vec![body]).await {
+    match apis::static_code_scans_api::add_static_code_scans_by_system_id(
+        &config,
+        sys_id,
+        vec![body],
+    )
+    .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -1827,17 +2071,23 @@ async fn cmd_post_scan_static_code(opts: &HashMap<String, String>) -> Result<()>
     let sys_id = require_int(opts, "systemId")?;
     let mut app = StaticCodeRequestPostBodyApplication::new();
     app.application_name = Some(
-        opts.get("name").map(String::clone).unwrap_or_else(|| "static_code".to_string()),
+        opts.get("name")
+            .cloned()
+            .unwrap_or_else(|| "static_code".to_string()),
     );
-    app.version = opts.get("version").map(String::clone);
+    app.version = opts.get("version").cloned();
     let mut body = StaticCodeRequestPostBody::new();
     body.application = Some(Box::new(app));
     if let Some(f) = opts.get("findings") {
         let mut findings = Vec::new();
         for j in parse_json_list(f)? {
             let mut fd = StaticCodeApplicationPost::new();
-            if let Some(s) = j.get("rawSeverity") { fd.raw_severity = Some(parse_severity(s.as_str().unwrap_or(""))); }
-            if let Some(s) = j.get("codeCheckName") { fd.code_check_name = s.as_str().map(String::from); }
+            if let Some(s) = j.get("rawSeverity") {
+                fd.raw_severity = Some(parse_severity(s.as_str().unwrap_or("")));
+            }
+            if let Some(s) = j.get("codeCheckName") {
+                fd.code_check_name = s.as_str().map(String::from);
+            }
             fd.count = j.get("count").and_then(|v| v.as_i64());
             fd.scan_date = j.get("scanDate").and_then(|v| v.as_i64());
             fd.cwe_id = j.get("cweId").and_then(|v| v.as_str().map(String::from));
@@ -1846,7 +2096,13 @@ async fn cmd_post_scan_static_code(opts: &HashMap<String, String>) -> Result<()>
         }
         body.application_findings = Some(findings);
     }
-    match apis::static_code_scans_api::add_static_code_scans_by_system_id(&config, sys_id, vec![body]).await {
+    match apis::static_code_scans_api::add_static_code_scans_by_system_id(
+        &config,
+        sys_id,
+        vec![body],
+    )
+    .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -1886,10 +2142,12 @@ async fn dispatch_put(args: &[String]) -> Result<()> {
         .map(|s| s.to_lowercase())
         .collect();
     let sub: Vec<&str> = lower.iter().map(String::as_str).collect();
-    let flags_start =
-        args.iter().position(|s| s.starts_with("--")).unwrap_or(args.len());
+    let flags_start = args
+        .iter()
+        .position(|s| s.starts_with("--"))
+        .unwrap_or(args.len());
     let opts = parse_options(&args[flags_start..]);
-    let cmd = sub.get(0).copied().unwrap_or("");
+    let cmd = sub.first().copied().unwrap_or("");
     let sys_id = require_int(&opts, "systemId")?;
     match cmd {
         "controls" => cmd_put_controls(sys_id, &opts).await,
@@ -1907,7 +2165,10 @@ async fn dispatch_put(args: &[String]) -> Result<()> {
 // Mirror emasser's `process_business_logic`: enforce conditional security
 // control update rules before the call (emasser `exit` == our `bail`).
 fn process_business_logic_controls(opts: &HashMap<String, String>) -> Result<()> {
-    let status = opts.get("implementationStatus").map(String::as_str).unwrap_or("");
+    let status = opts
+        .get("implementationStatus")
+        .map(String::as_str)
+        .unwrap_or("");
     if status.is_empty() {
         bail!("The \"--implementationStatus\" parameter is required when updating a Security Control.");
     }
@@ -1942,18 +2203,28 @@ async fn cmd_put_controls(sys_id: i32, opts: &HashMap<String, String>) -> Result
     // emasser runs process_business_logic before building the body.
     process_business_logic_controls(opts)?;
     let mut c = ControlsRequiredFields::new();
-    if let Some(v) = opts.get("acronym") { c.acronym = Some(v.clone()); }
-    if let Some(v) = opts.get("responsibleEntities") { c.responsible_entities = Some(v.clone()); }
+    if let Some(v) = opts.get("acronym") {
+        c.acronym = Some(v.clone());
+    }
+    if let Some(v) = opts.get("responsibleEntities") {
+        c.responsible_entities = Some(v.clone());
+    }
     if let Some(v) = opts.get("controlDesignation") {
         c.control_designation = Some(match v.to_lowercase().as_str() {
             "common" => emass_client::models::controls_required_fields::ControlDesignation::Common,
-            "system-specific" => emass_client::models::controls_required_fields::ControlDesignation::SystemSpecific,
+            "system-specific" => {
+                emass_client::models::controls_required_fields::ControlDesignation::SystemSpecific
+            }
             "hybrid" => emass_client::models::controls_required_fields::ControlDesignation::Hybrid,
             _ => emass_client::models::controls_required_fields::ControlDesignation::Common,
         });
     }
-    if let Some(v) = opts.get("estimatedCompletionDate") { c.estimated_completion_date = v.parse::<i64>().ok(); }
-    if let Some(v) = opts.get("implementationNarrative") { c.implementation_narrative = Some(v.clone()); }
+    if let Some(v) = opts.get("estimatedCompletionDate") {
+        c.estimated_completion_date = v.parse::<i64>().ok();
+    }
+    if let Some(v) = opts.get("implementationNarrative") {
+        c.implementation_narrative = Some(v.clone());
+    }
     match apis::controls_api::update_control_by_system_id(&build_config()?, sys_id, vec![c]).await {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
@@ -1967,8 +2238,12 @@ async fn cmd_put_poams(sys_id: i32, opts: &HashMap<String, String>) -> Result<()
     // client PoamIds carries only: system_id, poam_id, display_poam_id
     let mut p = PoamIds::new();
     p.system_id = Some(sys_id as i64);
-    if let Some(v) = opt_i64(opts, "poamId") { p.poam_id = Some(v); }
-    if let Some(v) = opt_i64(opts, "displayPoamId") { p.display_poam_id = Some(v); }
+    if let Some(v) = opt_i64(opts, "poamId") {
+        p.poam_id = Some(v);
+    }
+    if let Some(v) = opt_i64(opts, "displayPoamId") {
+        p.display_poam_id = Some(v);
+    }
     match apis::poam_api::update_poam_by_system_id(&build_config()?, sys_id, vec![p]).await {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
@@ -1989,14 +2264,33 @@ async fn cmd_put_milestones(sys_id: i32, opts: &HashMap<String, String>) -> Resu
     };
     // emasser milestones endpoint accepts raw JSON: build the full body.
     let mut body: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
-    if let Some(v) = opts.get("milestoneId") { body.insert("milestoneId".into(), serde_json::json!(v)); }
-    if let Some(v) = opts.get("description") { body.insert("description".into(), serde_json::json!(v)); }
-    if let Some(v) = opts.get("scheduledCompletionDate") { body.insert("scheduledCompletionDate".into(), serde_json::json!(v)); }
-    if let Some(v) = opts.get("reviewStatus") { body.insert("reviewStatus".into(), serde_json::json!(v)); }
-    if let Some(v) = opts.get("createdDate") { body.insert("createdDate".into(), serde_json::json!(v)); }
-    if let Some(v) = opts.get("createdBy") { body.insert("createdBy".into(), serde_json::json!(v)); }
+    if let Some(v) = opts.get("milestoneId") {
+        body.insert("milestoneId".into(), serde_json::json!(v));
+    }
+    if let Some(v) = opts.get("description") {
+        body.insert("description".into(), serde_json::json!(v));
+    }
+    if let Some(v) = opts.get("scheduledCompletionDate") {
+        body.insert("scheduledCompletionDate".into(), serde_json::json!(v));
+    }
+    if let Some(v) = opts.get("reviewStatus") {
+        body.insert("reviewStatus".into(), serde_json::json!(v));
+    }
+    if let Some(v) = opts.get("createdDate") {
+        body.insert("createdDate".into(), serde_json::json!(v));
+    }
+    if let Some(v) = opts.get("createdBy") {
+        body.insert("createdBy".into(), serde_json::json!(v));
+    }
     let body_array = vec![serde_json::Value::Object(body)];
-    match apis::milestones_api::update_milestone_by_system_id_and_poam_id(&build_config()?, sys_id, poam_id, body_array).await {
+    match apis::milestones_api::update_milestone_by_system_id_and_poam_id(
+        &build_config()?,
+        sys_id,
+        poam_id,
+        body_array,
+    )
+    .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -2008,11 +2302,20 @@ async fn cmd_put_milestones(sys_id: i32, opts: &HashMap<String, String>) -> Resu
 async fn cmd_put_artifacts(sys_id: i32, opts: &HashMap<String, String>) -> Result<()> {
     // client ArtifactsRequiredFields carries: filename, is_template, type, category
     let mut a = ArtifactsRequiredFields::new();
-    if let Some(v) = opts.get("filename") { a.filename = Some(v.clone()); }
-    if let Some(v) = opts.get("isTemplate") { a.is_template = Some(Some(v == "true")); }
-    if let Some(v) = opts.get("type") { a.r#type = Some(v.clone()); }
-    if let Some(v) = opts.get("category") { a.category = Some(v.clone()); }
-    match apis::artifacts_api::update_artifact_by_system_id(&build_config()?, sys_id, vec![a]).await {
+    if let Some(v) = opts.get("filename") {
+        a.filename = Some(v.clone());
+    }
+    if let Some(v) = opts.get("isTemplate") {
+        a.is_template = Some(Some(v == "true"));
+    }
+    if let Some(v) = opts.get("type") {
+        a.r#type = Some(v.clone());
+    }
+    if let Some(v) = opts.get("category") {
+        a.category = Some(v.clone());
+    }
+    match apis::artifacts_api::update_artifact_by_system_id(&build_config()?, sys_id, vec![a]).await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -2024,8 +2327,12 @@ async fn cmd_put_artifacts(sys_id: i32, opts: &HashMap<String, String>) -> Resul
 async fn cmd_put_hardware(sys_id: i32, opts: &HashMap<String, String>) -> Result<()> {
     // client HwBaselineReadOnlyFields carries only: hardware_id
     let mut h = HwBaselineReadOnlyFields::new();
-    if let Some(v) = opts.get("hardwareId") { h.hardware_id = Some(Some(v.clone())); }
-    match apis::hardware_baseline_api::update_hw_baseline_assets(&build_config()?, sys_id, vec![h]).await {
+    if let Some(v) = opts.get("hardwareId") {
+        h.hardware_id = Some(Some(v.clone()));
+    }
+    match apis::hardware_baseline_api::update_hw_baseline_assets(&build_config()?, sys_id, vec![h])
+        .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -2037,8 +2344,12 @@ async fn cmd_put_hardware(sys_id: i32, opts: &HashMap<String, String>) -> Result
 async fn cmd_put_software(sys_id: i32, opts: &HashMap<String, String>) -> Result<()> {
     // client SwBaselineReadOnlyFields carries only: software_id
     let mut s = SwBaselineReadOnlyFields::new();
-    if let Some(v) = opts.get("softwareId") { s.software_id = Some(Some(v.clone())); }
-    match apis::software_baseline_api::update_sw_baseline_assets(&build_config()?, sys_id, vec![s]).await {
+    if let Some(v) = opts.get("softwareId") {
+        s.software_id = Some(Some(v.clone()));
+    }
+    match apis::software_baseline_api::update_sw_baseline_assets(&build_config()?, sys_id, vec![s])
+        .await
+    {
         Ok(resp) => print_output(&resp),
         Err(err) => print_err(&err),
     }
@@ -2080,7 +2391,10 @@ async fn dispatch_delete(args: &[String]) -> Result<()> {
         .map(|s| s.to_lowercase())
         .collect();
     let sub: Vec<&str> = lower.iter().map(String::as_str).collect();
-    let flags_start = args.iter().position(|s| s.starts_with("--")).unwrap_or(args.len());
+    let flags_start = args
+        .iter()
+        .position(|s| s.starts_with("--"))
+        .unwrap_or(args.len());
     let opts = parse_options(&args[flags_start..]);
     match sub.as_slice() {
         ["poams", "remove"] => {

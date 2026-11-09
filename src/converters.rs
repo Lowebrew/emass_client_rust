@@ -56,7 +56,7 @@ fn pretty_value(value: &Value, level: usize, buf: &mut String) {
                 // reference: empty object -> "{\n" + pad(level) + "}"
                 buf.push_str("{\n");
                 pad(level, buf);
-                buf.push_str("}");
+                buf.push('}');
                 return;
             }
             buf.push_str("{\n");
@@ -69,19 +69,19 @@ fn pretty_value(value: &Value, level: usize, buf: &mut String) {
                 if i + 1 < entries.len() {
                     buf.push_str(",\n");
                 } else {
-                    buf.push_str("\n");
+                    buf.push('\n');
                 }
             }
             pad(level, buf);
-            buf.push_str("}");
+            buf.push('}');
         }
         Value::Array(arr) => {
             if arr.is_empty() {
                 // reference: empty array -> "[\n\n" + pad(level) + "]"
                 buf.push_str("[\n");
-                buf.push_str("\n");
+                buf.push('\n');
                 pad(level, buf);
-                buf.push_str("]");
+                buf.push(']');
                 return;
             }
             buf.push_str("[\n");
@@ -91,11 +91,11 @@ fn pretty_value(value: &Value, level: usize, buf: &mut String) {
                 if i + 1 < arr.len() {
                     buf.push_str(",\n");
                 } else {
-                    buf.push_str("\n");
+                    buf.push('\n');
                 }
             }
             pad(level, buf);
-            buf.push_str("]");
+            buf.push(']');
         }
         // Scalars (null / bool / number / string) — match serde_json exactly.
         other => {
@@ -118,7 +118,7 @@ fn compact_arrays(value: &Value) -> Value {
             let filtered: Vec<Value> = arr
                 .iter()
                 .filter(|v| !v.is_null())
-                .map(|v| compact_arrays(v))
+                .map(compact_arrays)
                 .collect();
             Value::Array(filtered)
         }
@@ -142,11 +142,9 @@ fn clean_data(value: &Value) -> Value {
             let mut out: Map<String, Value> = Map::new();
             for (k, v) in map.iter() {
                 let lk = k.to_lowercase();
-                if lk.contains("meta") {
-                    out.insert(k.clone(), v.clone());
-                } else if lk.contains("pagination") {
-                    out.insert(k.clone(), v.clone());
-                } else if lk.contains("data") {
+                // Only the `data` key needs per-element cleaning; everything
+                // else (meta, pagination, and any other key) is copied as-is.
+                if lk.contains("data") {
                     out.insert(k.clone(), clean_data_value(v));
                 } else {
                     out.insert(k.clone(), v.clone());
@@ -163,7 +161,7 @@ fn clean_data_value(v: &Value) -> Value {
     if let Some(arr) = v.as_array() {
         let cleaned: Vec<Value> = arr
             .iter()
-            .map(|e| compact_object(e))
+            .map(compact_object)
             .filter(|c| !c.is_null() && !is_empty_object(c))
             .collect();
         Value::Array(cleaned)
@@ -194,7 +192,9 @@ fn is_empty_object(v: &Value) -> bool {
 
 fn unwrap_error_envelope(value: &Value) -> Value {
     if let Some(obj) = value.as_object() {
-        let is_err = obj.keys().any(|k| k.to_lowercase().contains("error message"));
+        let is_err = obj
+            .keys()
+            .any(|k| k.to_lowercase().contains("error message"));
         if is_err {
             if let Some(rb) = obj.get("Response body") {
                 if let Some(s) = rb.as_str() {
@@ -224,7 +224,7 @@ fn convert_datetime(v: &Value) -> Value {
             Value::Object(out)
         }
         Value::Array(arr) => {
-            let out: Vec<Value> = arr.iter().map(|x| convert_datetime(x)).collect();
+            let out: Vec<Value> = arr.iter().map(convert_datetime).collect();
             Value::Array(out)
         }
         other => other.clone(),
@@ -239,9 +239,7 @@ fn convert_epoch_value(key: &str, val: &Value) -> Value {
         if let Some(n) = val.as_i64() {
             if n > 100_000_000 {
                 if let Ok(t) = time::OffsetDateTime::from_unix_timestamp(n) {
-                    return Value::String(
-                        t.format(&Rfc3339).unwrap_or_else(|_| t.to_string()),
-                    );
+                    return Value::String(t.format(&Rfc3339).unwrap_or_else(|_| t.to_string()));
                 }
             }
         }
@@ -268,7 +266,7 @@ mod tests {
     #[test]
     fn compacts_null_array_elements_by_default() {
         // The `[null]` -> `[]` transformation that enables byte parity.
-        let mut v: Value = serde_json::from_str(r#"{"meta":{"code":200},"data":[null]}"#).unwrap();
+        let v: Value = serde_json::from_str(r#"{"meta":{"code":200},"data":[null]}"#).unwrap();
         let out = to_output_hash(&v, true, false);
         assert_eq!(out, serde_json::json!({"meta":{"code":200},"data":[]}));
     }
@@ -295,28 +293,33 @@ mod tests {
     fn keeps_nulls_when_displayed_but_still_compacts_arrays() {
         // display_nulls=true keeps null-valued object keys, but array
         // compaction (to_body) still happens.
-        let mut v: Value = serde_json::from_str(r#"{"a":null,"arr":[null,1]}"#).unwrap();
+        let v: Value = serde_json::from_str(r#"{"a":null,"arr":[null,1]}"#).unwrap();
         let out = to_output_hash(&v, true, false);
         assert_eq!(out, serde_json::json!({"a":null,"arr":[1]}));
     }
 
     #[test]
     fn converts_epoch_to_datetime() {
-        let mut v: Value =
+        let v: Value =
             serde_json::from_str(r#"{"systemId":1,"dateLastAudit":1700000000}"#).unwrap();
         let out = to_output_hash(&v, true, true);
-        let s = out["dateLastAudit"].as_str().expect("epoch should become a string");
+        let s = out["dateLastAudit"]
+            .as_str()
+            .expect("epoch should become a string");
         assert!(s.contains("2023"), "unexpected datetime: {s}");
     }
 
     #[test]
-    fn converts_epoch_in_nested_object_byId_shape() {
+    fn converts_epoch_in_nested_object_by_id_shape() {
         // Mirrors the byId response: `data` is a single object (not an array),
         // so conversion must recurse into nested objects.
-        let mut v: Value = serde_json::from_str(r#" {
+        let v: Value = serde_json::from_str(
+            r#" {
             "data": { "acronym": "PM-6", "authorizationDate": 1638741660 },
             "meta": { "code": 200 }
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let out = to_output_hash(&v, true, true);
         let s = out["data"]["authorizationDate"]
             .as_str()
