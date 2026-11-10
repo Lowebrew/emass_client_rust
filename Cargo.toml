@@ -6,6 +6,10 @@ resolver = "2"
 name = "emasser"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+# A per-user tool that reads its API key/credentials from the environment; it is
+# not a library to publish. See `emass_client` for the publishable crate.
+publish = false
 
 [[bin]]
 name = "emasser"

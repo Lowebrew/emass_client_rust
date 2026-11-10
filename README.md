@@ -2,6 +2,8 @@
 
 Rust client for the [MITRE eMASS (EaaS) REST API](https://github.com/mitre/emass_client), regenerated from MITRE's `eMASSRestOpenApi.yaml` OpenAPI spec. This repo supplies the **Rust leg** of MITRE's client library that the upstream project does not ship natively — MITRE generates the client in **Ruby, TypeScript, and Python**, but not Rust.
 
+> **Scope — generated vs hand-authored.** The generated `client/` crate (`emass_client`) is reproduced from MITRE's spec; its size is generated, not hand-written, and it is not hand-maintained between regenerations. The hand-authored portion of this repo is the thin `emasser` CLI wrapper in `src/` and the parity/wire-body test harness in `tests/`. See [`Codegen & regeneration`](#codegen--regeneration) for how the client is produced.
+
 ## What's here
 
 The repo is a two-crate Rust workspace:
@@ -63,7 +65,10 @@ This repo reproduces the missing **Rust** leg from the same upstream `eMASSRestO
 
 ## License
 
-The generated `client/` crate is MIT-licensed (inherited from the upstream codegen conventions). See [`LICENSE`](LICENSE).
+Two different licenses apply here — the generated client and the hand-authored wrapper are separate:
+
+- **`client/` crate (`emass_client`)** — **Apache-2.0**, as declared in `client/Cargo.toml`. This is the generated client reproduced from MITRE's upstream spec, so its license is carried from upstream, not set by this repo.
+- **`emasser` wrapper and `tests/`** (the hand-authored layer) — **MIT**, per the root [`LICENSE`](LICENSE).
 
 ## Credits
 

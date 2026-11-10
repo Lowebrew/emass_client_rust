@@ -5,6 +5,10 @@ authors = ["emass_client_rust contributors"]
 description = "The eMASS Representational State Transfer (REST) Application Programming Interface (API) enables users to perform assessments and complete actions associated with system records.  The eMASS API provides an interface for application to communicate eMASS Services. For information on how to register and use the eMASS API reference the [eMASS API Getting Started](eMASSGettingStarted.md).  Additional information about eMASS can be obtain by contacting the National Industrial Security Program (NISP). Points of Contact are: "
 license = "Apache 2.0"
 edition = "2021"
+repository = "https://github.com/Lowebrew/emass_client_rust"
+documentation = "https://docs.rs/emass_client"
+keywords = ["emass", "mitre", "rcm", "fedramp", "security"]
+categories = ["api-bindings", "network-programming"]
 
 [dependencies]
 serde = { version = "^1.0", features = ["derive"] }
@@ -20,3 +24,9 @@ reqwest = { version = "^0.13", default-features = false, features = ["json", "mu
 default = ["native-tls"]
 native-tls = ["reqwest/native-tls"]
 rustls = ["reqwest/rustls"]
+
+[package.metadata.docs.rs]
+# Emulate how `emasser` consumes the crate (pure-Rust TLS, no system OpenSSL)
+# so docs.rs has no native dependency to satisfy.
+no-default-features = true
+features = ["rustls"]
