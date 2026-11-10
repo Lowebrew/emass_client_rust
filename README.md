@@ -26,8 +26,104 @@ The regeneration tooling (patched generator + custom template + staged class dir
 End-to-end CLI wrapper (loads a local `.env` into the process environment, then runs the binary):
 
 ```bash
-./run_emass.sh <subcommand>   # e.g. ./run_emass.sh scan clear
+./run_emass.sh <subcommand>   # e.g. ./run_emass.sh get test connection
 ```
+
+## Usage
+
+`emasser` is a read-focused CLI: every operation is a `get` resource, with `post` / `put` / `delete` verbs available for the write paths. Authentication is **mTLS client certificate + API key**, provided entirely through environment variables — no secret is stored in the code.
+
+### 1. Configure credentials
+
+`configure` writes a `.env` template to the repo root (existing keys are left untouched). Fill in your eMASS material:
+
+```bash
+./run_emass.sh configure        # writes .env; ./target/debug/emasser configure also works
+```
+
+`.env` keys. The **mTLS cert + private key are a matched pair** — if you set one, set the other too.
+
+| Key | Required | Purpose |
+| --- | --- | --- |
+| `EMASSER_HOST_URL` | yes | eMASS host, e.g. `https://emas.example.gov` |
+| `EMASSER_API_KEY` | yes | API key / user-uid value |
+| `EMASSER_CERT_FILE_PATH` | yes | mTLS client certificate (PEM) |
+| `EMASSER_KEY_FILE_PATH` | yes | mTLS private key (PEM) |
+| `EMASSER_KEY_FILE_PASSWORD` | no | passphrase for the encrypted private key |
+| `EMASSER_USER_UID` | no | user-uid (falls back to `123` if unset) |
+| `EMASSER_VERIFY_SSL` | no | `false` to accept self-signed servers |
+| `EMASSER_PREFER` | no | mock header, e.g. `code=200, dynamic=true` |
+| `EMASSER_CLI_DISPLAY_NULL` | no | `false` to strip null fields from output |
+| `EMASSER_EPOCH_TO_DATETIME` | no | `true` to convert epoch timestamps |
+| `EMASSER_DOWNLOAD_DIR` | no | where `get artifacts export` writes files |
+
+`run_emass.sh` loads `.env` into the process environment automatically before invoking the binary, so you rarely set these by hand.
+
+### 2. Verify connectivity
+
+Always start here — it validates host + credentials before you run real queries:
+
+```bash
+./run_emass.sh get test connection
+```
+
+### 3. Run queries
+
+Reads read as `get <resource> [subcommand]`:
+
+```bash
+# List systems (optionally filtered by CAMS id)
+./run_emass.sh get systems all [--coams-id ID]
+
+# Controls in a system
+./run_emass.sh get controls forSystem --systemId 12345
+
+# POA&M items in a system
+./run_emass.sh get poams forSystem --systemId 12345
+
+# One POA&M item
+./run_emass.sh get poams byPoamId --systemId 12345 --poamId 6789
+
+# Download a system's artifact bundle
+./run_emass.sh get artifacts export --systemId 12345 --filename artifacts.tar.gz
+```
+
+### Command reference
+
+All reads hang off `get`; `post` / `put` / `delete` are the write verbs, and `configure` sets up credentials. Invoke every read as `emasser get <resource> [subcommand] [options]`:
+
+**Systems**
+- `test connection` — test the eMASS API connection
+- `systems all [--coams-id ID]` — list systems
+- `systems byId --systemId <id>` — get a system by id
+- `system id [--systemName <name>] [--systemOwner <owner>]` — find system(s) by name/owner
+- `system byId --systemId <id>` — get a single system
+
+**Controls & assessments**
+- `roles all` — list system roles
+- `controls forSystem --systemId <id>` — controls in a system
+- `cac controls --systemId <id>` — CAC location of controls
+- `pac package --systemId <id>` — PAC location of the system package
+- `ccmc assessments --sinceDate <date>` — CMC assessment information
+- `dashboards <name> --orgId <id>` — a system dashboard
+
+**POA&M**
+- `poams forSystem --systemId <id>` — POA&M items in a system
+- `poams byPoamId --systemId <id> --poamId <id>` — one POA&M item
+- `milestones byPoamId --systemId <id> --poamId <id>` — milestones for a POA&M
+- `milestones byMilestoneId --poamId <id> --milestoneId <id>` — one milestone
+
+**Results, assets & artifacts**
+- `testResults forSystem --systemId <id>` — test results in a system
+- `hardware assets --systemId <id>` — hardware assets
+- `software assets --systemId <id>` — software assets
+- `artifacts forSystem --systemId <id>` — artifacts for a system
+- `artifacts export --systemId <id> --filename <f>` — download an artifact (`-C` compress, `-o` print to stdout)
+
+**Workflows**
+- `workflow_definitions forSite` — all workflow definitions
+- `workflow_instances all` — all workflow instances
+- `workflow_instances byInstanceId --workflowInstanceId <id>` — one workflow instance
 
 ## Layout
 
