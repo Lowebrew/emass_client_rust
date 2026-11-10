@@ -28,15 +28,14 @@ struct Captured {
     body: Vec<u8>,
 }
 
-/// Locate the POC binary that `cargo test` just built (debug preferred).
+/// Path to the freshly-built emasser binary.
+///
+/// Uses Cargo's `CARGO_BIN_EXE_<bin>` env var, which is guaranteed to point at
+/// the sibling binary cargo builds *for this test run* — no manual
+/// `target/debug`/`target/release` globbing, so there is no build-ordering race
+/// when `cargo test` also recompiles the client crate.
 fn poc_bin() -> PathBuf {
-    let manifest = env!("CARGO_MANIFEST_DIR");
-    let debug = PathBuf::from(manifest).join("target/debug/emasser");
-    if debug.exists() {
-        debug
-    } else {
-        PathBuf::from(manifest).join("target/release/emasser")
-    }
+    PathBuf::from(env!("CARGO_BIN_EXE_emasser"))
 }
 
 /// Index of the CRLF+LFCR header/body terminator, if present.
