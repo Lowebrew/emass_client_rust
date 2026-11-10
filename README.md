@@ -9,7 +9,7 @@ The repo is a two-crate Rust workspace:
 | Crate | What it is |
 | --- | --- |
 | [`client/`](client/) | **`emass_client`** (`v3.22.0`) — the generated eMASS REST API client. This crate is **generated, not hand-maintained**: it is reproduced from the spec through a patched [`openapi-generator`](https://github.com/OpenAPITools/openapi-generator) 7.12.0 pipeline (see [Codegen](#codegen--regeneration)). |
-| [`emasser`](Cargo.toml) | The hand-authored **`emasser`** binary + crate (`src/`, `tests/`) — the CLI / proof-of-consumer that drives `emass_client`. |
+| [`emasser`](Cargo.toml) | The hand-authored **`emasser`** binary + crate (`src/`, `tests/`) — the CLI front-end that drives `emass_client`. |
 
 The regeneration tooling (patched generator + custom template + staged class dirs) lives in [`references/pipeline_inputs/`](references/pipeline_inputs/).
 
@@ -21,10 +21,10 @@ The regeneration tooling (patched generator + custom template + staged class dir
 | Test (parity + wire-capture) | `cargo test --workspace` |
 | Build the binary | `cargo build` → run `./target/debug/emasser` |
 
-End-to-end POC wrapper (loads a local `.env` into the process environment, then runs the binary):
+End-to-end CLI wrapper (loads a local `.env` into the process environment, then runs the binary):
 
 ```bash
-./run_poc.sh <subcommand>   # e.g. ./run_poc.sh scan clear
+./run_emass.sh <subcommand>   # e.g. ./run_emass.sh scan clear
 ```
 
 ## Layout

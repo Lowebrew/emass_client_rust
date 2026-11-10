@@ -26,6 +26,13 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
 
+      - name: Ensure clippy + rustfmt components
+        # dtolnay/rust-toolchain installs only rustup's default components
+        # (rustc, std, cargo, docs); clippy/rustfmt are NOT included, and the
+        # `beta` toolchain on the runner is shipped without clippy. Add both
+        # explicitly so both lint steps work on every toolchain in the matrix.
+        run: rustup component add clippy rustfmt
+
       - name: Cache Cargo registry + target
         uses: actions/cache@v4
         with:
@@ -57,3 +64,11 @@ jobs:
 
       - name: Byte-parity + wire-capture tests
         run: cargo test --locked --test byte_parity --test parity_capture
+
+      - name: CLI smoke test — command → emass_client path gate
+        # Drives the built `emasser` binary through the full command surface
+        # (GET/POST/PUT/DELETE) against an in-process HTTP server and asserts
+        # each command exits successfully, targets the expected resource path,
+        # and uses the correct HTTP verb. Reuses the parity_capture.rs
+        # mock-server pattern.
+        run: cargo test --locked --test smoke
