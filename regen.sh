@@ -2,7 +2,7 @@
 #
 # regen.sh — repo-local regeneration of the emass_client crate.
 #
-# Unlike regen_client.sh (which diffs against STOCK openapi-generator 7.12.0
+# Unlike regen_client.sh (which diffs against STOCK openapi-generator 7.27.0
 # output and will always report the ~53 divergent files introduced by the
 # custom template), this script regenerates with the COMMITTED custom template
 # (references/pipeline_inputs/ct) plus the committed patched generator class
@@ -54,21 +54,21 @@ fi
 
 # Generator jar: prefer OGCJAR (CI), else candidate paths.
 if [[ -z "${OGCJAR:-}" || ! -f "${OGCJAR}" ]]; then
-  for cand in "$REPO_ROOT/openapi-generator-cli-7.12.0.jar" \
-              "$HOME/.local/toolchain/openapi-generator-cli-7.12.0.jar" \
-              "$REPO_ROOT/.local/toolchain/openapi-generator-cli-7.12.0.jar"; do
+  for cand in "$REPO_ROOT/openapi-generator-cli-7.27.0.jar" \
+              "$HOME/.local/toolchain/openapi-generator-cli-7.27.0.jar" \
+              "$REPO_ROOT/.local/toolchain/openapi-generator-cli-7.27.0.jar"; do
     if [[ -f "$cand" ]]; then OGCJAR="$cand"; break; fi
   done
 fi
 if [[ -z "${OGCJAR:-}" || ! -f "${OGCJAR}" ]]; then
-  echo "ERROR: openapi-generator-cli-7.12.0.jar not found (set OGCJAR or download it)" >&2; exit 2
+  echo "ERROR: openapi-generator-cli-7.27.0.jar not found (set OGCJAR or download it)" >&2; exit 2
 fi
 
 SPEC="${SPEC:-$REPO_ROOT/spec/eMASSRestOpenApi.yaml}"
 PIN_DIR="$REPO_ROOT/references/pipeline_inputs"
 NEW_CLASSES="$PIN_DIR/new_classes"                 # AbstractRustCodegen (on classpath)
 PATCH_SRC="$PIN_DIR/RustClientCodegen.java"        # patched generator, recompiled here
-TEMPLATE_DIR="$PIN_DIR/ct"                         # custom 7.12.0 mustache template
+TEMPLATE_DIR="$PIN_DIR/ct"                         # custom 7.27.0 mustache template
 
 # ---------------------------------------------------------------------------
 # Core regen: recompile the patch -> generate -> return <out>/src

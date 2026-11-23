@@ -10,7 +10,7 @@ The repo is a two-crate Rust workspace:
 
 | Crate | What it is |
 | --- | --- |
-| [`client/`](client/) | **`emass_client`** (`v3.22.0`) — the generated eMASS REST API client. This crate is **generated, not hand-maintained**: it is reproduced from the spec through a patched [`openapi-generator`](https://github.com/OpenAPITools/openapi-generator) 7.12.0 pipeline (see [Codegen](#codegen--regeneration)). |
+| [`client/`](client/) | **`emass_client`** (`v3.22.0`) — the generated eMASS REST API client. This crate is **generated, not hand-maintained**: it is reproduced from the spec through a patched [`openapi-generator`](https://github.com/OpenAPITools/openapi-generator) 7.27.0 pipeline (see [Codegen](#codegen--regeneration)). |
 | [`emasser`](Cargo.toml) | The hand-authored **`emasser`** binary + crate (`src/`, `tests/`) — the CLI front-end that drives `emass_client`. |
 
 The regeneration tooling (patched generator + custom template + staged class dirs) lives in [`references/pipeline_inputs/`](references/pipeline_inputs/).
@@ -137,7 +137,7 @@ All reads hang off `get`; `post` / `put` / `delete` are the write verbs, and `co
 
 ## Codegen & regeneration
 
-The committed `client/` crate is the **output** of a custom `openapi-generator` 7.12.0 Rust pipeline (patched `RustClientCodegen` generator + custom mustache templates) — **not** stock template output. To keep it bit-exact after any spec or template change, run the drift guard:
+The committed `client/` crate is the **output** of a custom `openapi-generator` 7.27.0 Rust pipeline (patched `RustClientCodegen` generator + custom mustache templates) — **not** stock template output. To keep it bit-exact after any spec or template change, run the drift guard:
 
 ```bash
 source ~/.local/toolchain/env.sh   # sets JAVA_HOME + OGCJAR

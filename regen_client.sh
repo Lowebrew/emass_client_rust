@@ -7,7 +7,7 @@
 # overwrites client/. It exists to guard against spec->client drift and to
 # give a reproducible, toolchain-pinned codegen path.
 #
-# Toolchain (no sudo): a portable JDK 21 and openapi-generator-cli 7.12.0,
+# Toolchain (no sudo): a portable JDK 21 and openapi-generator-cli 7.27.0,
 # installed under ~/.local/toolchain via ~/.local/toolchain/env.sh.
 #
 # Usage:
@@ -22,9 +22,9 @@ set -euo pipefail
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 SPEC="${SPEC:-$REPO_ROOT/spec/eMASSRestOpenApi.yaml}"
 CLIENT_DIR="${CLIENT_DIR:-$REPO_ROOT/client}"
-JAR="${OGCJAR:-$REPO_ROOT/openapi-generator-cli-7.12.0.jar}"
+JAR="${OGCJAR:-$REPO_ROOT/openapi-generator-cli-7.27.0.jar}"
 JDK="${JAVA_HOME:-$HOME/.local/toolchain/jdk-21.0.13+9}"
-GEN_VERSION="${GEN_VERSION:-7.12.0}"
+GEN_VERSION="${GEN_VERSION:-7.27.0}"
 
 # ---- preconditions --------------------------------------------------------
 if [[ -z "$JAVA_HOME" || ! -x "$JAVA_HOME/bin/java" ]]; then
@@ -78,7 +78,7 @@ case "${1:-summary}" in
   *)
     n_differ=$(diff -rq "$CLIENT_DIR/src" "$TMP/src" | grep -c "differ" || true)
     n_total=$(find "$CLIENT_DIR/src" -type f | wc -l)
-    echo "Summary: $n_differ / $n_total src files differ from stock 7.12.0 'rust' output."
+    echo "Summary: $n_differ / $n_total src files differ from stock 7.27.0 'rust' output."
     echo "The divergent set is exactly the user's custom-template additions"
     echo "(see REGEN_NOTES.md for the recovery specification):"
     echo "  1. Accept: application/json header on every request build"

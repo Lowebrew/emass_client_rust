@@ -800,7 +800,7 @@ pub enum PrimaryControlSet {
     #[serde(rename = "NIST SP 800-53 Revision 4")]
     NistSp80053Revision4,
     #[serde(rename = "DoDI 8500.2")]
-    DoDi85002,
+    DoDi8500Period2,
 }
 
 impl Default for PrimaryControlSet {

@@ -10,7 +10,7 @@ committed `client/src` matches the regen output on **196 / 196** files.
 Two pipelines touch this crate; do not confuse them:
 
 - **`regen_client.sh`** — the stock drift guard. It regenerates from **stock**
-  7.12.0 options (no custom template) into `/tmp`, then diffs against
+  7.27.0 options (no custom template) into `/tmp`, then diffs against
   `client/`. Because it omits the custom template + patches, it shows the
   *structural* divergence below. See "Baseline drift".
 - **`./regen.sh`** (repo-local — see "Repo-local regen") — the real,
@@ -27,10 +27,10 @@ Two pipelines touch this crate; do not confuse them:
 
 | Item | Value |
 | --- | --- |
-| Generator | `openapi-generator-cli` **7.12.0** |
+| Generator | `openapi-generator-cli` **7.27.0** |
 | Java | Temurin **JDK 21** (`~/.local/toolchain/jdk-21.0.13+9`) |
 | Real regen script | `./regen.sh` (repo-local) — patched classes + `ct/` template |
-| Stock drift script | `regen_client.sh` — stock 7.12.0, drift guard only |
+| Stock drift script | `regen_client.sh` — stock 7.27.0, drift guard only |
 | Env | `~/.local/toolchain/env.sh` (`JAVA_HOME`, `OGCJAR`, `PATH`) |
 | Custom template (committed) | `references/pipeline_inputs/ct/` (repo) **and** skill `references/pipeline_inputs/ct/` |
 | Regen input spec (tracked) | `spec/eMASSRestOpenApi.yaml` |
@@ -55,7 +55,7 @@ never mutating `references/` — and drives the custom `ct/` template, reproduci
 `client/src` on **196 / 196** files. `verify` diffs the regen output against the
 committed `client/src` and **fails on any difference**.
 
-The stock `regen_client.sh` is separate: it uses **stock** 7.12.0 output (no
+The stock `regen_client.sh` is separate: it uses **stock** 7.27.0 output (no
 custom template) and always reports ~53 structural differ — expected, not a
 failure (see "Baseline drift").
 
@@ -149,7 +149,7 @@ scoped to keep the generated crate excluded **by construction**, not by hand:
 - **Drift guard (`codegen.yml`):** `./regen.sh verify` regenerates from the
   committed custom template + patched class and asserts 196 / 196 parity. A
   template or patch that drifts out of sync with `client/src` **fails the job**,
-  forcing a regen + recovery. A follow-up step regenerates from **stock** 7.12.0
+  forcing a regen + recovery. A follow-up step regenerates from **stock** 7.27.0
   for the informational baseline-drift list (see "Baseline drift").
 
 ## Build/run rule
